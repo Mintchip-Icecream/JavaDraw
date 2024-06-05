@@ -6,7 +6,7 @@ public class ColorButton extends Buttons { //inherits
     private int r = 0;
     private int g = 0;
     private int b = 0;
-    public static Color CurrentColor = new Color(255, 0, 0); //this is for the pen
+    public static Color CurrentColor = new Color(155, 0, 0); //this is for the pen
     Canvas canvas;
     //change color based on moving your mouse while holding after clicking
 
@@ -15,7 +15,6 @@ public class ColorButton extends Buttons { //inherits
     public ColorButton(Canvas canvas, int inputx, int inputy, int inputsize, Color inputColor) {
         super(canvas, inputx, inputy, inputsize, inputColor);
     }
-
     public void draw() {
         super.draw();
         g2.setColor(CurrentColor);
@@ -25,7 +24,7 @@ public class ColorButton extends Buttons { //inherits
     }
 
     public void activate() {
-        changeColor(r, g, b);
+        changeButtonColor(r, g, b);
 
     }
 
@@ -42,7 +41,7 @@ public class ColorButton extends Buttons { //inherits
         }
 
     }
-        public void changeColor ( int red, int green, int blue){
+        public void changeButtonColor ( int red, int green, int blue){
         CurrentColor = new Color(red, green, blue);
     }
 }

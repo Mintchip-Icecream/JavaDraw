@@ -1,9 +1,10 @@
 import java.awt.*;
 public class Buttons {
-    private static int x;
-    private static int y;
+    private int x;
+    private int y;
     private static int size;
     private Color color;
+    public boolean isActive = false;
     Canvas canvas;
     Graphics g2;
 
@@ -23,19 +24,23 @@ public class Buttons {
         g2.drawRect(x+2,y+2,size-2,size-2);
     }
 
-    public static boolean isPressed(){
+    public boolean isPressed(){
         return Canvas.mousePressed && Canvas.mouseX >= x && Canvas.mouseX <= x + size && Canvas.mouseY >= y && Canvas.mouseY <=y+size;
     }
 
     public void update(){
-        if (isPressed()){
+        if (isPressed()) {
             activate();
             System.out.println("button pressed"); //testing
+            isActive = true;
         }
     }
     public void activate(){
 
     }
+    public void deactivate(){};
+
+    public void updateGraphics(Graphics2D panel){};
 
     public int getX(){
         return x;
