@@ -10,7 +10,7 @@ public class Canvas  {
     public static int mouseY = 0;
     public static Color canvasColor = new Color(255,255,255);
     public static boolean mousePressed = false; //checked by button class to tell whether to activate or not
-    public static boolean onToolBar = false; //probably not needed, just check if (mouseY < 100)
+    public static String activebutton = "colorbutton";
     public DrawingPanel panel = new DrawingPanel(1600, 1000);
     public Graphics2D g2 = panel.getGraphics();
     LayerHandler lh; // layer handler, when stuff is drawn on canvas it has to be drawn through the LayerHandler instance (ex. lh.g2.drawRect())
@@ -38,11 +38,6 @@ public class Canvas  {
         mousePressed = true;
         System.out.println("mousepressed = true"); //testing purpose
         if (y < 100){ tb.update();} //VERY IMPORTANT, will update all the buttons to see if they're pressed, and if they're pressed they'll activate
-        if(tb.activebutton.equals("eraser")) {
-            tb.eraser.updateGraphics(g2);
-        } else if (tb.activebutton.equals("pen")) {
-            tb.pen.updateGraphics(g2);
-        }
     }
     public void mouseRelease(){
         mousePressed = false;
@@ -51,8 +46,13 @@ public class Canvas  {
         mousePressed = true;
         mouseX = x;
         mouseY = y;
-        if (x<=width && y <= height+100 && y >= 100){
-            g2.fillOval(x, y, 5, 5);
+        if (y<100){tb.dragUpdate();}
+        else {
+            switch (activebutton) {
+                case "pen":
+                    g2.setColor(tb.CurrentColor);
+                    g2.fillOval(x, y, 1 * tb.penSize, 1 * tb.penSize);
+            }
         }
         // ex of a layerhandler usage: "lh.currentLayer.g2.setColor(Color.red);"
     }
