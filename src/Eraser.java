@@ -7,10 +7,8 @@ public class Eraser extends Buttons { //inherits
     Canvas canvas;
     public Eraser(Canvas canvas, int inputx, int inputy, int inputsize, Color inputColor) {
         super(canvas, inputx, inputy, inputsize, inputColor);
-        System.out.println("eraser constructor");
     }
     public void draw() {
-        System.out.println("eraser draw");
         super.draw();
         g2.setColor(currentColor);
         g2.fillRect(getX()+2,getY()+2,getSize()-2,getSize()-2);
@@ -19,13 +17,12 @@ public class Eraser extends Buttons { //inherits
         g2.drawString("Eraser", getX()+30, 50);
     }
     public void activate() {
-        System.out.println("eraser activate");
+        if (!(Canvas.activebutton == "eraser")){
         changeButtonColor(r,g,b);
         Canvas.activebutton="eraser";
-    }
-    public void deactivate(){
-        System.out.println("eraser deactivate");
-        changeButtonColor(255,255,255);
+        } else {
+            changeButtonColor(255, 255, 255);
+        }
     }
     public void updateGraphics(Graphics2D panel) {
         panel.setColor(Color.WHITE);

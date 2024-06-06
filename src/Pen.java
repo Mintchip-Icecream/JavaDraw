@@ -21,16 +21,22 @@ public class Pen extends Buttons { //inherits
         g2.drawString("Pen", getX()+30, 50);
     }
     public void activate() {
-        System.out.println("pen activate");
-        changeButtonColor(r,g,b);
-        Canvas.activebutton = "pen";
+        if (!(Canvas.activebutton == "pen")) {
+            System.out.println("pen activate");
+            changeButtonColor(r, g, b);
+            Canvas.activebutton = "pen";
+        }
+        else {
+            changeButtonColor(0, 0, 0);
+        }
+
     }
     public void deactivate(){
         System.out.println("eraser deactivate");
         changeButtonColor(0,0,0);
     }
-    public void updateGraphics(Graphics2D panel) {
-        panel.setColor(colorOfPen);
+    public void updateGraphics(Graphics2D panel, Color color) {
+        panel.setColor(color);
     }
     public void changeButtonColor ( int red, int green, int blue){
         currentColor = new Color(red, green, blue);

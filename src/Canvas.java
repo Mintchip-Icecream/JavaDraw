@@ -34,9 +34,7 @@ public class Canvas  {
         mouseX= x;
         initialy = y;
         mouseY = y;
-        System.out.println(x + " " + y);
         mousePressed = true;
-        System.out.println("mousepressed = true"); //testing purpose
         if (y < 100){ tb.update();} //VERY IMPORTANT, will update all the buttons to see if they're pressed, and if they're pressed they'll activate
     }
     public void mouseRelease(){
@@ -47,11 +45,17 @@ public class Canvas  {
         mouseX = x;
         mouseY = y;
         if (y<100){tb.dragUpdate();}
-        else {
+        else if (mouseX <width && mouseY < height){
             switch (activebutton) {
                 case "pen":
                     g2.setColor(tb.CurrentColor);
                     g2.fillOval(x, y, 1 * tb.penSize, 1 * tb.penSize);
+                    //tb.pen.updateGraphics(g2, tb.CurrentColor);
+                break;
+                case "eraser":
+
+                    //tb.eraser.updateGraphics(g2);
+                break;
             }
         }
         // ex of a layerhandler usage: "lh.currentLayer.g2.setColor(Color.red);"

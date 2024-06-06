@@ -5,9 +5,12 @@ public class Main {
     public static int canvasWidth=1600;
     public static int canvasHeight = 900;
     public Main(){
-        InitCanvas init = new InitCanvas();
-        canvasWidth = InitCanvas.getWidth();
-        canvasHeight = InitCanvas.getHeight();
+        Scanner scanner = new Scanner(System.in); //
+        System.out.println("Insert width: ");
+        canvasWidth = scanner.nextInt();
+        System.out.println("Insert height: ");
+        canvasHeight = scanner.nextInt();
+
 
         Canvas canvas = new Canvas();
 

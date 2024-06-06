@@ -6,6 +6,7 @@ public class Buttons {
     private Color color;
     Canvas canvas;
     Graphics g2;
+    ////for Mr. Forkner, the code for this specific button references this video (this class is the only thing borrowed from outside sources as far as I know): https://youtu.be/MHhFTqAHiOA?si=c74su5JJdWTdQWH2
 
     public Buttons(Canvas canvas,int inputx, int inputy, int inputsize, Color inputColor){
         this.g2=canvas.g2;
@@ -20,6 +21,11 @@ public class Buttons {
         g2.drawRect(x,y,size,size);
         g2.setColor(color);
         g2.fillRect(x+2,y+2,size-2,size-2);
+    }
+    public void draw(String text, int yValue, Color color2){
+        draw();
+        g2.setColor(color2);
+        g2.drawString(text, getX()+25, yValue);
     }
 
     public boolean isPressed(){

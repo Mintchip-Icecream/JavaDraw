@@ -19,7 +19,7 @@ public class ColorButton extends Buttons { //inherits
     public void draw() {
         super.draw();
         g2.setColor(Color.white);
-        g2.drawString("Color", getX()+25, 25);
+        g2.drawString("Color", getX()+25, getY()+25);
 
     }
 
