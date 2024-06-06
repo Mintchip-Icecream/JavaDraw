@@ -20,31 +20,35 @@ public class JDLayer extends BufferedImage {
   private String name = "Layer";
   int x = 0, y = 0, mouseX, mouseY;
   Graphics2D g2, g2Buffer, canvasG2;
-  Rectangle boundary, handleNW, handleNE, handleSW, handleSE;
+  Rectangle boundary, handleNW, handleNE, handleSW, handleSE;  // note: handles have been abondoned
   BufferedImage buffer;  // buffer to save version of layer to before drawing border for select method
-  Boolean isSelected = false, canDrag = false;
+  Boolean isSelected = false, canDrag = false, isBoundaryOn = false;
   
-  public JDLayer(String layerName, int width, int height) {
-    super(width, height, BufferedImage.TYPE_INT_ARGB);
+  public JDLayer(String layerName, Rectangle canvasBoundary) {
+    super((int) canvasBoundary.getWidth(), (int) canvasBoundary.getHeight(), BufferedImage.TYPE_INT_ARGB);
     this.name = layerName;
-    this.boundary = new Rectangle(0, 0, width, height);
     this.g2 = createGraphics();
-    this.buffer = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB); 
-    this.g2Buffer = this.buffer.createGraphics();
+    this.x = (int) canvasBoundary.getX();
+    this.y = (int) canvasBoundary.getY();
+    //this.buffer = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB); 
+    //this.g2Buffer = this.buffer.createGraphics();
   }
 
   public void detectBoundary() {
     int layerW = this.getWidth();
     int layerH = this.getHeight();
-    int upperX = 0;
-    int upperY = 0;
+    int upperX = this.x;
+    int upperY = this.y;
     int lowerX = layerW;
     int lowerY = layerH;
 
+    System.out.println("Detecting Boundary...");
+    printVars("", "Layer: ", this.getX()+"", this.getY()+"", layerW+"", layerH+"");
     // loop through all the pixels in the layer to check for non transarent pixels
     for (int x = 0; x < layerW; x++) {
       for (int y = 0; y < layerH; y++) {
         if (this.getPixelAlpha(x, y) != 0) {
+          System.out.print(x + ", " + y + " ");
           lowerX = x < lowerX ? x : lowerX;
           lowerY = y < lowerY ? y : lowerY;
           upperX = x > upperX ? x : upperX;
@@ -53,12 +57,15 @@ public class JDLayer extends BufferedImage {
       }
     }
 
+    printVars("", "Boundary bounds Before Padding: ", lowerX+"", lowerY+"", upperX+"", upperY+"");
     // pad boundary and ensure boundary the canvas's boundary
     lowerX = lowerX >= SELECT_BOX_PADDING ? lowerX - SELECT_BOX_PADDING : 0;
     lowerY = lowerY >= SELECT_BOX_PADDING ? lowerY - SELECT_BOX_PADDING : 0;
     upperX = upperX <= (layerW - SELECT_BOX_PADDING) ? upperX + SELECT_BOX_PADDING : layerW;
     upperY = upperY <= (layerH - SELECT_BOX_PADDING) ? upperY + SELECT_BOX_PADDING : layerH;
-    this.boundary.setBounds(lowerX, lowerY, upperX - lowerX, upperY - lowerY);
+
+    this.boundary = new Rectangle(lowerX, lowerY, upperX - lowerX, upperY - lowerY);
+    printVars("", "Boundary x,y,w,h After Padding: ", lowerX+"", lowerY+"", (upperX - lowerX)+"", (upperY - lowerY)+"");
 
     // build resize handles at corners
     int  // positions for handles
@@ -76,36 +83,35 @@ public class JDLayer extends BufferedImage {
   public Boolean boundaryContainsXY(int x, int y) {
     if (this.getBoundary() == null) return false;
 
-    return this.getBoundary().contains(x, y);
+    // a layer's boundary coords is relative to itself, not the canvas, so we need account for the difference
+    int offsetX = x - this.getX();
+    int offsetY = y - this.getY();
+
+    return this.getBoundary().contains(offsetX , offsetY);
   }
 
   // checks if x, y is within the layer's bound and returns the element name
   public String getBoundaryElAtXY(int x, int y) {
     String elName = null;
-    // a layer's boundary coords is relative to itself, not the canvas, so we need account for the difference
-    int offsetX = x - this.getX();
-    int offsetY = y - this.getY();
+    
 
-    if (!this.boundaryContainsXY(offsetX, offsetY)) return null;
-    if (this.handleNW.contains(offsetX, offsetY)) elName = "NW";
+    if (!this.boundaryContainsXY(x, y) || this.boundary == null) return null;
+    if (this.handleNW.contains(x, y)) elName = "NW";
     else 
-      if (this.handleNE.contains(offsetX, offsetY)) elName = "NE";
+      if (this.handleNE.contains(x, y)) elName = "NE";
     else 
-      if (this.handleSE.contains(offsetX, offsetY)) elName = "SE";
+      if (this.handleSE.contains(x, y)) elName = "SE";
     else 
-      if (this.handleSW.contains(offsetX, offsetY)) elName = "SW";
+      if (this.handleSW.contains(x, y)) elName = "SW";
     else 
       elName = "inside";
 
     return elName;
   }
 
-  private int getPixelAlpha(int x, int y) {
-    return ((this.getRGB(x, y) >> 24) & 0xff);
-  }
-
-  public void select() {
-    if (this.isSelected) return;
+  public void drawBoundary() {
+    if (this.isBoundaryOn) return;
+    
 
     Stroke currentStroke = this.g2.getStroke();
     Stroke dash = new BasicStroke( //https://stackoverflow.com/questions/21989082/drawing-dashed-line-in-java
@@ -117,57 +123,73 @@ public class JDLayer extends BufferedImage {
       0
     );
     Color currentColor = this.g2.getColor();
-    
 
+    this.detectBoundary();
+    System.out.println("Drawing boundary");
     // save the state of the layer before drawing border to easily remove the border in the deselect method
-    this.g2Buffer.drawImage(this, 0, 0, null); 
-    //this.saveImageToFile(this, "layer_before_draw.png");
-    //this.saveImageToFile(this.buffer, "buffer_before_draw.png");
-    
+    this.setBuffer(this.getCroppedLayer());
+    saveImageToFile(this, "layer_before_boundary_draw.png");
+    saveImageToFile(this.buffer, "buffer_before_boundary_draw.png"); 
+      
     // draw dashed border
     this.g2.setStroke(dash);
     this.g2.setColor(SELECT_BOX_BORDER_COLOR);
     this.g2.draw(this.boundary);
     this.g2.setStroke(currentStroke);
-    // draw resize handles
+    
+    /* draw resize handles (abandoned) 
     this.g2.setColor(Color.RED);
     this.g2.fill(this.handleNW); // top left corner
     this.g2.fill(this.handleNE); // top right corner
     this.g2.fill(this.handleSE); // bottom right corner
     this.g2.fill(this.handleSW); // bottom left corner
-     
+    */ 
+
     this.g2.setColor(currentColor);
+    this.isBoundaryOn = true;
+  }
 
-    //this.saveImageToFile(this, "layer_after_draw.png");
-    //this.saveImageToFile(this.buffer, "buffer_afer_draw.png");
+  public void hideBoundary() {
+    if (!this.isBoundaryOn) return;
 
+    this.clear();
+    this.g2.drawImage(this.buffer, 0, 0, null);
+    this.isBoundaryOn = false;
+  }
+
+  private int getPixelAlpha(int x, int y) {
+    return ((this.getRGB(x, y) >> 24) & 0xff);
+  }
+
+  public void select(Boolean showBoundary) {
+    if (this.isSelected) return;
+
+    if (showBoundary) this.drawBoundary();
     this.isSelected = true;
   }
 
   public void deselect() {
     if (!this.isSelected) return;
-    //this.saveImageToFile(this, "layer_before_deselect.png");
-    this.clear();
-    
-    this.g2.drawImage(this.buffer, 0, 0, null);
-    //this.saveImageToFile(this, "layer_afer_deselect.png");
+
+    this.hideBoundary();
     this.isSelected = false;
   }
 
+  /* this method is abadoned.  G2 graphics do not scale well so layers look too distored */
   public void resize(int x, int y, int w, int h) {    
     System.out.println("resizing");
     int newX = (int) getBoundary().getX();
     int newY = (int) getBoundary().getY();
     int newW = (int) getBoundary().getWidth();
     int newH = (int) getBoundary().getHeight();
-    Boolean wasSelected = false;
+    Boolean wasBoundaryOn = false;
 
-    if (this.isSelected) {
-      wasSelected = true;
+    if (this.isBoundaryOn) {
+      wasBoundaryOn = true;
       this.deselect();
     }
 
-     this.setBuffer(this.getSubimage(newX, newY, newW, newH));
+    this.setBuffer(this.getSubimage(newX, newY, newW, newH));
 
     //saveImageToFile(this.buffer, "1 buffer_before_scale.png");
     //saveImageToFile(this, "2 layer_before_scale.png");
@@ -179,7 +201,7 @@ public class JDLayer extends BufferedImage {
     this.g2.drawImage(this.buffer, x, y, w, h, null);
     //saveImageToFile(this, "3 layer_after_scale.png");
     this.detectBoundary();
-    if (wasSelected) this.select();
+    if (wasBoundaryOn) this.drawBoundary();
   
   }
 
@@ -191,13 +213,58 @@ public class JDLayer extends BufferedImage {
   }
 
   private void setBuffer(BufferedImage bf) {
+    System.out.println("Setting buffer...");
+    saveImageToFile(this, "layer_before_buffer_save.png");
+    saveImageToFile(bf, "img_to_buffer_before_buffer_save.png");
+    System.out.println("  BF: " + bf.getWidth() + " x " + bf.getHeight());
     this.buffer = new BufferedImage(bf.getWidth(), bf.getHeight(), BufferedImage.TYPE_INT_ARGB);
     this.g2Buffer = this.buffer.createGraphics();
     this.g2Buffer.drawImage(bf, null, null);
+    saveImageToFile(buffer, "buffer_after_buffer_save.png");
+  }
+
+  public void refresh() {
+    int x = (int) getBoundary().getX();
+    int y = (int) getBoundary().getY();
+    int w = (int) getBoundary().getWidth();
+    int h = (int) getBoundary().getHeight();
+    int newX = x + this.getX();
+    int newY = y + this.getY();
+    Boolean wasBoundaryOn = false;
+
+    System.out.println("Refreshing Layer...");
+    System.out.println("Layer: " + this.getX() + " " + this.getY() + " ");
+    System.out.println("Boundary: " + x + " " + y + " ");   
+    System.out.println("New: " + newX + " " + newY + " ");
+    System.out.println("Boundary on: " + isBoundaryOn);
+    
+    if (this.isBoundaryOn) {
+      wasBoundaryOn = true;
+      this.hideBoundary();
+    }
+
+    this.setBuffer(this.getCroppedLayer());
+    
+    //this.clear();
+    //this.x = 0;
+    //this.y = 0;
+    //this.g2.drawImage(buffer, newX,  newY, null);
+    //if (wasBoundaryOn) this.drawBoundary();
+  }
+
+  private BufferedImage getCroppedLayer() {
+    int x = (int) getBoundary().getX();
+    int y = (int) getBoundary().getY();
+    int w = (int) getBoundary().getWidth();
+    int h = (int) getBoundary().getHeight();
+
+    System.out.print("Cropping at: ");
+    printVars("", x, y, w, h);
+
+    return this.getSubimage(x, y, w, h);
   }
 
   
-
   // used for testing purposes
   public void saveImageToFile(BufferedImage img, String fileName ) {
     try {
@@ -207,13 +274,34 @@ public class JDLayer extends BufferedImage {
     } catch (IOException e) {
         System.out.println("Error saving buffer to file: " + e.getMessage());
     }
-}
+  }
 
-// getters
-public String getName() { return this.name; }
-public Rectangle getBoundary() { return this.boundary; }
-public int getX() { return this.x; }
-public int getY() { return this.y; }
+  public void printVars(String delim, String ... vars) {
+
+    for (int i = 0; i < vars.length; i++) {
+      System.out.print(vars[i] + " " + delim + " ");
+    }
+    System.out.println();
+  }
+
+  public void printVars(String delim, Integer ... vars) {
+
+    for (int i = 0; i < vars.length; i++) {
+      System.out.print(vars[i] + " " + delim + " ");
+    }
+    System.out.println();
+  }
+
+  // getters
+  public String getName() { return this.name; }
+  public Rectangle getBoundary() { return this.boundary; }
+  public int getX() { return this.x; }
+  public int getY() { return this.y; }
+
+  // setters
+  public void setName(String name) {
+    this.name = name;
+  }
 
  
 

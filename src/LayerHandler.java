@@ -2,30 +2,24 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
-import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-
 import javax.swing.JPanel;
 
 public class LayerHandler {
  
-  BufferedImage gui;
   Map<String, JDLayer> layers = new HashMap<>();
   Graphics2D canvasG2;
-  JDLayer currentLayer;
+  JDLayer selectedLayer;
+  Rectangle canvasBounds;
+  
 
-  public LayerHandler(int width, int height, DrawingPanel dp) {
-    this.gui = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-    buildUI();
+  public LayerHandler(DrawingPanel dp, Rectangle canvasBoundary) {
     this.canvasG2 = dp.getGraphics();
+    this.canvasBounds = canvasBoundary;
     this.addListeners(dp);
-  }
-
-  private void buildUI() {
-
   }
 
   private void addListeners(DrawingPanel dp) {
@@ -44,28 +38,49 @@ public class LayerHandler {
   }
 
   private void handleMouseDown(int x, int y) {
-    if (this.currentLayer == null || !this.currentLayer.isSelected || !this.currentLayer.boundaryContainsXY(x, y)) return;
+    //System.out.println(this.selectedLayer == null);
+    //System.out.println(this.selectedLayer.isSelected);
+    //System.out.println(this.selectedLayer.boundaryContainsXY(x, y));
 
-    this.currentLayer.mouseX = x;
-    this.currentLayer.mouseY = y;
-    this.currentLayer.canDrag = true;
+    if (this.selectedLayer == null || !this.selectedLayer.isSelected || !this.selectedLayer.boundaryContainsXY(x, y)) return;
+
+    JDLayer l = this.selectedLayer;
+    
+    l.mouseX = x;
+    l.mouseY = y;
+    l.canDrag = true;
+   // System.out.println(l.getX() + " " + l.getY());
   }
 
   private void handleMouseUp(int x, int y) {
-    if (this.currentLayer == null || !this.currentLayer.isSelected) return;
+    if (this.selectedLayer == null || !this.selectedLayer.isSelected) return;
 
-    this.currentLayer.canDrag = false;
+    JDLayer l = this.selectedLayer;
+
+    //System.out.println(l.getX() + " " + l.getY());
+    if (l.getX() != 0 && l.getY() != 0) {
+      l.refresh();
+      this.refreshCanvas();
+    }
+
+    this.selectedLayer.canDrag = false;
   }
 
   private void handleMouseDrag(int x, int y) {
-    if (this.currentLayer == null || !this.currentLayer.canDrag) return;
+    if ( 
+      this.selectedLayer == null || 
+      !this.selectedLayer.canDrag || 
+      !this.canvasBounds.contains(this.selectedLayer.getBoundary())
+    )
+      return;
 
-    JDLayer l = this.currentLayer;
+    JDLayer l = this.selectedLayer;
     int newX = l.x + (x - l.mouseX);
     int newY = l.y + (y - l.mouseY);
+    Integer[] cb = this.rectangleDimToArr(this.canvasBounds);
 
     this.canvasG2.setBackground(Color.WHITE);
-    this.canvasG2.clearRect(0, 0, 800, 800);
+    this.canvasG2.clearRect(cb[0], cb[1], cb[2], cb[3]);
     l.x = newX;
     l.y = newY;
     l.mouseX = x;
@@ -77,10 +92,10 @@ public class LayerHandler {
   private void handleMouseMove(int x, int y, DrawingPanel dp)  {
     JPanel imgPnl = this.getImagePanel(dp);
 
-    if (this.currentLayer == null || imgPnl == null) return; 
+    if (this.selectedLayer == null || imgPnl == null) return; 
     
-    if (this.currentLayer.isSelected && this.currentLayer.getBoundaryElAtXY(x, y) != null) {
-      String boundaryEl = this.currentLayer.getBoundaryElAtXY(x, y);
+    if (this.selectedLayer.isSelected && this.selectedLayer.getBoundaryElAtXY(x, y) != null) {
+      String boundaryEl = this.selectedLayer.getBoundaryElAtXY(x, y);
 
       // https://stackoverflow.com/questions/7359189/how-to-change-the-mouse-cursor-in-java
       switch (boundaryEl) {
@@ -107,14 +122,13 @@ public class LayerHandler {
 
   // key press handlers
   private void handleKeyPress(char key) {
-    if ("sdr".indexOf(key) == -1 || this.currentLayer == null) return;
+    if ("sdp".indexOf(key) == -1 || this.selectedLayer == null) return;
       
-      JDLayer l = this.currentLayer;
+      JDLayer l = this.selectedLayer;
      
-      l.detectBoundary();
-      if (key == 's') this.selectLayer(l.getName()); 
-      if (key == 'd') this.deselectLayer(l.getName());
-      if (key == 'r') {
+      if (key == 's') { this.selectedLayer.drawBoundary(); this.canvasG2.drawImage(l, l.getX(), l.getY(), null); }
+      if (key == 'd') { this.selectedLayer.hideBoundary(); this.refreshCanvas(); }
+      if (key == 'r') {  // this functionality was for testing purposes only
         Rectangle b = l.getBoundary();
         int newX = (int) b.getX();
         int newY = (int) b.getY();
@@ -129,44 +143,125 @@ public class LayerHandler {
           (int) b.getHeight() + 25);
         this.refreshCanvas();
       }
+      if (key == 'p') {
+        Rectangle b = l.getBoundary();
+        System.out.println("Boundary: " + b.getX() + " " + b.getY() + " " + b.getWidth() + " " + b.getHeight());
+      }
+
+
   }
 
-  public JDLayer addLayer(String layerName) {
+  public JDLayer addLayer() {
+    String layerName = "Layer " + (this.layers.size() + 1);
+
     if (layerExists(layerName)) 
       throw new IllegalArgumentException("Layer with name " + layerName + " already exists.");
     else {
-      JDLayer l = new JDLayer(layerName, 800, 800); // TODO: soft-code width/height
+      JDLayer l = new JDLayer(layerName, this.canvasBounds); // TODO: soft-code width/height
       
       this.layers.put(layerName, l);
-      return l;  // return newly added layer for convience
+      this.selectLayer(layerName, false);
+
+      return this.selectedLayer;  // return newly added layer for convience
     }
   }
 
-  // add: delete layer
+  // NOTE: double recursion with renameLayer
+  public void deleteLayer(String layerName) {
 
-  public void selectLayer(String layerName) {
+    if (!layerExists(layerName)) 
+      throw new IllegalArgumentException("Layer with name " + layerName + " does not exist.");
+    else {
+      int layerNum = this.parseLayerInt(layerName);
+      System.out.println("Deleting " + layerName);
+      this.layers.remove(layerName);
+      this.renameLayer("Layer " + (layerNum +1), layerName);
+    }
+  }
+
+  // NOTE: double recursion with deleteLayer
+  public void renameLayer(String layerName, String newName) {
+    int layerNum = this.parseLayerInt(layerName);
+
+    if (this.parseLayerInt(newName) > this.layers.size()) return;
+    if 
+      (!this.layerExists(layerName)) this.renameLayer("Layer " + (layerNum + 1), layerName);
+    else {
+      JDLayer l = this.layers.get(layerName);
+      System.out.println("Renaming " + layerName + " to " + newName);
+      l.setName(newName);
+      this.layers.put(newName, l);
+      this.selectLayer(newName, true);
+      this.deleteLayer(layerName);
+    }
+  }
+
+  public void selectLayer(String layerName, Boolean showBoundary) {
     JDLayer layer = this.getLayer(layerName);
-    layer.select();
-    this.currentLayer = layer;
+    layer.select(showBoundary);
+    this.selectedLayer = layer;
     this.refreshCanvas();
   }
 
+  public void selectPrevLayer() {
+    int layerNumber = this.parseLayerInt(this.selectedLayer.getName());
+    
+    if (layerNumber <= 1) return;
+    layerNumber--;
+    String layerName = "Layer " + layerNumber;
+
+    if (this.layerExists(layerName)) {
+      this.deselectLayer(layerName);
+      this.selectLayer(layerName, true);
+    } 
+  }
+
+  public void selectNextLayer() {
+    int layerNumber = this.parseLayerInt(this.selectedLayer.getName());
+    
+    //if (layerNumber >= this.layers.size()) return;
+    if (layerNumber >= this.layers.size()) this.addLayer();   // not fond of implementing it this way, but it will have 
+                                                              // to do unless an 'add layer' button is added to the toolbar
+    layerNumber++;
+    String layerName = "Layer " + layerNumber;
+
+    if (this.layerExists(layerName)) {
+      this.deselectLayer(layerName);
+      this.selectLayer(layerName, true);
+    } 
+  }
+
   public void deselectLayer(String layerName) {
-    this.currentLayer.deselect();
+    this.selectedLayer.deselect();
     this.refreshCanvas();
   }
 
   private void drawLayer(JDLayer layer) {
     this.canvasG2.drawImage(layer, layer.x, layer.y, null);
-    layer.detectBoundary();
+  }
+
+  public void drawSelectedLayer() {
+    this.drawLayer(selectedLayer);
   }
 
 
   private void refreshCanvas() {
-    // TODO: soft-code color and width/height
-    this.canvasG2.setBackground(Color.white);  
-    this.canvasG2.clearRect(0, 0, 800, 800);
+    Integer[] cb = this.rectangleDimToArr(this.canvasBounds);
+
+    this.canvasG2.setBackground(Color.WHITE);
+    this.canvasG2.clearRect(cb[0], cb[1], cb[2], cb[3]);
     this.layers.forEach((name, layer) -> this.drawLayer(layer));
+  }
+
+  private Integer[] rectangleDimToArr(Rectangle r) {
+    Integer[] dims = new Integer[4];
+
+    dims[0] = (int) r.getX();
+    dims[1] = (int) r.getY();
+    dims[2] = (int) r.getWidth();
+    dims[3] = (int) r.getHeight();
+
+    return dims;
   }
 
   
@@ -197,14 +292,13 @@ public class LayerHandler {
     return null;
   }
 
- 
-
+  private int parseLayerInt(String layerName) { return Integer.valueOf(layerName.split(" ")[1]); }
   public Boolean layerExists(String layerName) { return this.layers.containsKey(layerName); }
 
   public static void main(String[] args) throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
     final int TOTALLAYERS = 20;
     DrawingPanel dp = new DrawingPanel(800, 800);
-    LayerHandler lh = new LayerHandler(1, 1, dp);
+    LayerHandler lh = new LayerHandler(dp, new Rectangle(0, 0, 800, 800));
     Color[] colors = {Color.BLACK, Color.GREEN, Color.BLUE, Color.PINK, Color.GRAY, Color.RED};
     Random rand = new Random();
     
@@ -214,7 +308,7 @@ public class LayerHandler {
       int y1 = rand.nextInt(800);
       int x2 = rand.nextInt(800);
       int y2 = rand.nextInt(800);
-      JDLayer l = lh.addLayer("Layer " + i);
+      JDLayer l = lh.addLayer();
 
       l.g2.setColor(colors[rand.nextInt(colors.length)]);
       l.g2.drawLine(x1, y1, x2, y2);
@@ -226,7 +320,7 @@ public class LayerHandler {
       int x = rand.nextInt(800);
       int y = rand.nextInt(800);
       int r = rand.nextInt(100) + 1;
-      JDLayer l = lh.addLayer("Layer " + i);
+      JDLayer l = lh.addLayer();
 
       l.g2.setColor(colors[rand.nextInt(colors.length)]);
       l.g2.fillOval(x, y, r, r);
@@ -237,9 +331,15 @@ public class LayerHandler {
     //l2g2.drawString("\uD83D\uDDD1", 50, 200); // trashcan icon
     
     // get random layer for drag testing
-    lh.currentLayer = lh.getLayer("Layer " + ((TOTALLAYERS/2)+2));
+    //lh.selectedLayer = lh.getLayer("Layer " + ((TOTALLAYERS/2)+2));
 
-    dp.onMouseClick((x, y) -> System.out.println(x + " " + y));
+    //System.out.println(lh.layers.keySet().toString());
+    //System.out.println(lh.layers.size());
+    //lh.deleteLayer("Layer 12");
+    //System.out.println(lh.layers.keySet().toString());
+    //System.out.println(lh.layers.size());
+
+
     
   }
 }

@@ -1,11 +1,11 @@
 import java.awt.*;
-public class Eraser extends Buttons { //inherits
+public class EraserButton extends Button { //inherits
     private int r = 128;
     private int g = 128;
     private int b = 128;
     public static Color currentColor = new Color(255, 255, 255, 255);
     Canvas canvas;
-    public Eraser(Canvas canvas, int inputx, int inputy, int inputsize, Color inputColor) {
+    public EraserButton(Canvas canvas, int inputx, int inputy, int inputsize, Color inputColor) {
         super(canvas, inputx, inputy, inputsize, inputColor);
     }
     public void draw() {
@@ -17,23 +17,24 @@ public class Eraser extends Buttons { //inherits
         g2.drawString("Eraser", getX()+30, 50);
     }
     public void activate() {
-        if (!(Canvas.activebutton == "eraser")){
+        if (!(super.canvas.activebutton == "eraser")){
         changeButtonColor(r,g,b);
-        Canvas.activebutton="eraser";
+        super.canvas.activebutton="eraser";
         } else {
             changeButtonColor(255, 255, 255);
         }
     }
     public void checkActive(){
-        if (!(Canvas.activebutton == "eraser")){
+        if (!(super.canvas.activebutton == "eraser")){
             changeButtonColor(r,g,b);
         } else {
             changeButtonColor(255, 255, 255);
         }
     }
-    public void updateGraphics(Graphics2D panel) {
-        panel.setColor(Color.WHITE);
-    }
+    //public void updateGraphics(Graphics2D panel) {
+
+    //    panel.setColor(new Color(255, 255, 255, 0));
+    //}
     public void changeButtonColor ( int red, int green, int blue){
         currentColor = new Color(red, green, blue);
         draw();

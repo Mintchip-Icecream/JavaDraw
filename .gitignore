@@ -28,3 +28,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+buffer_after_buffer_save.png
+buffer_before_boundary_draw.png
+img_to_buffer_before_buffer_save.png
+layer_before_boundary_draw.png
+layer_before_buffer_save.png
