@@ -12,7 +12,7 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 public class JDLayer extends BufferedImage {
-  final static int SELECT_BOX_PADDING = 6;
+  final static int SELECT_BOX_PADDING = 2;
   final static int SELECT_BOX_HANDLE_SIZE = SELECT_BOX_PADDING - 2;
   final static Color SELECT_BOX_BORDER_COLOR = Color.GRAY;
   final static Color SELECT_BOX_HANDLE_COLOR = Color.RED;
@@ -30,25 +30,31 @@ public class JDLayer extends BufferedImage {
     this.g2 = createGraphics();
     this.x = (int) canvasBoundary.getX();
     this.y = (int) canvasBoundary.getY();
-    //this.buffer = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB); 
-    //this.g2Buffer = this.buffer.createGraphics();
+    this.buffer = new BufferedImage((int) canvasBoundary.getWidth(), (int) canvasBoundary.getHeight(), BufferedImage.TYPE_INT_ARGB); 
+    this.g2Buffer = this.buffer.createGraphics();
   }
 
   public void detectBoundary() {
     int layerW = this.getWidth();
     int layerH = this.getHeight();
-    int upperX = this.x;
-    int upperY = this.y;
+    int upperX = 0;
+    int upperY = 0;
     int lowerX = layerW;
     int lowerY = layerH;
+    Boolean isEmpty = true;
 
     System.out.println("Detecting Boundary...");
     printVars("", "Layer: ", this.getX()+"", this.getY()+"", layerW+"", layerH+"");
+
+    this.boundary = new Rectangle(upperX, upperY, lowerX, lowerY);  // first set boundary to size of layer
+    int a = 0;
     // loop through all the pixels in the layer to check for non transarent pixels
     for (int x = 0; x < layerW; x++) {
       for (int y = 0; y < layerH; y++) {
         if (this.getPixelAlpha(x, y) != 0) {
-          System.out.print(x + ", " + y + " ");
+          a++;
+          isEmpty = false;
+          //System.out.print(x + ", " + y + " ");
           lowerX = x < lowerX ? x : lowerX;
           lowerY = y < lowerY ? y : lowerY;
           upperX = x > upperX ? x : upperX;
@@ -56,15 +62,18 @@ public class JDLayer extends BufferedImage {
         }
       }
     }
-
+    System.out.println("alphas: "+a);
     printVars("", "Boundary bounds Before Padding: ", lowerX+"", lowerY+"", upperX+"", upperY+"");
+
     // pad boundary and ensure boundary the canvas's boundary
     lowerX = lowerX >= SELECT_BOX_PADDING ? lowerX - SELECT_BOX_PADDING : 0;
     lowerY = lowerY >= SELECT_BOX_PADDING ? lowerY - SELECT_BOX_PADDING : 0;
     upperX = upperX <= (layerW - SELECT_BOX_PADDING) ? upperX + SELECT_BOX_PADDING : layerW;
     upperY = upperY <= (layerH - SELECT_BOX_PADDING) ? upperY + SELECT_BOX_PADDING : layerH;
 
-    this.boundary = new Rectangle(lowerX, lowerY, upperX - lowerX, upperY - lowerY);
+    // if layer isn't empty, shrink boundary to correct size
+    if (!isEmpty) this.boundary = new Rectangle(lowerX, lowerY, upperX - lowerX, upperY - lowerY);
+
     printVars("", "Boundary x,y,w,h After Padding: ", lowerX+"", lowerY+"", (upperX - lowerX)+"", (upperY - lowerY)+"");
 
     // build resize handles at corners
@@ -110,7 +119,7 @@ public class JDLayer extends BufferedImage {
   }
 
   public void drawBoundary() {
-    if (this.isBoundaryOn) return;
+    //if (this.isBoundaryOn) return;
     
 
     Stroke currentStroke = this.g2.getStroke();
@@ -127,7 +136,8 @@ public class JDLayer extends BufferedImage {
     this.detectBoundary();
     System.out.println("Drawing boundary");
     // save the state of the layer before drawing border to easily remove the border in the deselect method
-    this.setBuffer(this.getCroppedLayer());
+    this.setBuffer(this);
+    //this.setBuffer(this.getCroppedLayer());
     saveImageToFile(this, "layer_before_boundary_draw.png");
     saveImageToFile(this.buffer, "buffer_before_boundary_draw.png"); 
       
@@ -175,11 +185,11 @@ public class JDLayer extends BufferedImage {
     this.isSelected = false;
   }
 
-  /* this method is abadoned.  G2 graphics do not scale well so layers look too distored */
+  /* this method is abandoned.  G2 graphics do not scale well so layers look too distored */
   public void resize(int x, int y, int w, int h) {    
     System.out.println("resizing");
-    int newX = (int) getBoundary().getX();
-    int newY = (int) getBoundary().getY();
+    int newX = (int) getBoundary().getX() - this.getX();
+    int newY = (int) getBoundary().getY() - this.getY();
     int newW = (int) getBoundary().getWidth();
     int newH = (int) getBoundary().getHeight();
     Boolean wasBoundaryOn = false;
@@ -228,8 +238,8 @@ public class JDLayer extends BufferedImage {
     int y = (int) getBoundary().getY();
     int w = (int) getBoundary().getWidth();
     int h = (int) getBoundary().getHeight();
-    int newX = x + this.getX();
-    int newY = y + this.getY();
+    int newX = x;// - this.getX();
+    int newY = y;// - this.getY();
     Boolean wasBoundaryOn = false;
 
     System.out.println("Refreshing Layer...");
@@ -243,7 +253,8 @@ public class JDLayer extends BufferedImage {
       this.hideBoundary();
     }
 
-    this.setBuffer(this.getCroppedLayer());
+    this.setBuffer(this);
+    //this.setBuffer(this.getCroppedLayer());
     
     //this.clear();
     //this.x = 0;
@@ -253,8 +264,8 @@ public class JDLayer extends BufferedImage {
   }
 
   private BufferedImage getCroppedLayer() {
-    int x = (int) getBoundary().getX();
-    int y = (int) getBoundary().getY();
+    int x = (int) getBoundary().getX() - this.getX();
+    int y = (int) getBoundary().getY() - this.getY();
     int w = (int) getBoundary().getWidth();
     int h = (int) getBoundary().getHeight();
 

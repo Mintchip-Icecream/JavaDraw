@@ -6,24 +6,25 @@ public class ColorButton extends Button {
   ToolBar tb;
   // change color based on moving your mouse while holding after clicking
 
-  public ColorButton(Canvas canvas, int inputx, int inputy, int inputsize, Color inputColor) {
-    super(canvas, inputx, inputy, inputsize, inputColor);
-
+  public ColorButton(String label, Canvas canvas, int inputx, int inputy, int inputsize, Color inputColor) {
+    super("Color", canvas, inputx, inputy, inputsize, inputColor);
+    this.labelColor = Color.WHITE;
   }
 
-  @Override
-  public void draw() {
-    super.draw();
-    g2.setColor(Color.white);
-    g2.drawString("Color", getX() + 25, getY() + 25);
+  //@Override
+  //public void draw() {
+   // super.draw();
+    //g2.setColor(Color.white);
+    //g2.drawString("Color", getX() + 25, getY() + 25);
 
-  }
+  //}
 
   public void changeColor(Color color) {
-    g2.setColor(color);
-    g2.fillRect(getX() + 2, getY() + 2, getSize() - 2, getSize() - 2);
-    g2.setColor(Color.white);
-    g2.drawString("Color", getX() + 25, 25);
+    this.color = color;
+    this.draw();
+    //g2.fillRect(getX() + 2, getY() + 2, getSize() - 2, getSize() - 2);
+    //g2.setColor(Color.white);
+    //g2.drawString("Color", getX() + 25, 25);
 
   }
 }

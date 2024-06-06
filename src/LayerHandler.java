@@ -42,8 +42,8 @@ public class LayerHandler {
     //System.out.println(this.selectedLayer.isSelected);
     //System.out.println(this.selectedLayer.boundaryContainsXY(x, y));
 
-    if (this.selectedLayer == null || !this.selectedLayer.isSelected || !this.selectedLayer.boundaryContainsXY(x, y)) return;
-
+    if (this.selectedLayer == null || !this.selectedLayer.isBoundaryOn || !this.selectedLayer.boundaryContainsXY(x, y)) return;
+    System.out.println("lh drag");
     JDLayer l = this.selectedLayer;
     
     l.mouseX = x;
@@ -59,21 +59,27 @@ public class LayerHandler {
 
     //System.out.println(l.getX() + " " + l.getY());
     if (l.getX() != 0 && l.getY() != 0) {
-      l.refresh();
-      this.refreshCanvas();
+      //l.refresh();
+      //this.refreshCanvas();
     }
 
     this.selectedLayer.canDrag = false;
   }
 
   private void handleMouseDrag(int x, int y) {
+    
+   
     if ( 
       this.selectedLayer == null || 
-      !this.selectedLayer.canDrag || 
-      !this.canvasBounds.contains(this.selectedLayer.getBoundary())
+      !this.selectedLayer.canDrag
+      
     )
       return;
 
+      //System.out.println(this.canvasBounds.getBounds());
+      //System.out.println(this.selectedLayer.getBoundary().getBounds());
+      //System.out.println(this.canvasBounds.contains(this.selectedLayer.getBoundary()));      
+    System.out.println("dragging layer");
     JDLayer l = this.selectedLayer;
     int newX = l.x + (x - l.mouseX);
     int newY = l.y + (y - l.mouseY);
@@ -98,18 +104,20 @@ public class LayerHandler {
       String boundaryEl = this.selectedLayer.getBoundaryElAtXY(x, y);
 
       // https://stackoverflow.com/questions/7359189/how-to-change-the-mouse-cursor-in-java
+      // NOTE: since resizing has been abandoned, changing the cursor on the corners has been 
+      // commented out
       switch (boundaryEl) {
         case "NW":
-          imgPnl.setCursor(new Cursor(Cursor.NW_RESIZE_CURSOR)); 
+          //imgPnl.setCursor(new Cursor(Cursor.NW_RESIZE_CURSOR)); 
           break;
         case "NE":
-          imgPnl.setCursor(new Cursor(Cursor.NE_RESIZE_CURSOR));
+          //imgPnl.setCursor(new Cursor(Cursor.NE_RESIZE_CURSOR));
           break;
         case "SE":
-          imgPnl.setCursor(new Cursor(Cursor.SE_RESIZE_CURSOR));
+          //imgPnl.setCursor(new Cursor(Cursor.SE_RESIZE_CURSOR));
           break;
         case "SW":
-          imgPnl.setCursor(new Cursor(Cursor.SW_RESIZE_CURSOR));
+          //imgPnl.setCursor(new Cursor(Cursor.SW_RESIZE_CURSOR));
           break;
         default:
           imgPnl.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -157,7 +165,7 @@ public class LayerHandler {
     if (layerExists(layerName)) 
       throw new IllegalArgumentException("Layer with name " + layerName + " already exists.");
     else {
-      JDLayer l = new JDLayer(layerName, this.canvasBounds); // TODO: soft-code width/height
+      JDLayer l = new JDLayer(layerName, this.canvasBounds); 
       
       this.layers.put(layerName, l);
       this.selectLayer(layerName, false);
@@ -237,6 +245,7 @@ public class LayerHandler {
   }
 
   private void drawLayer(JDLayer layer) {
+    //this.canvasG2.drawImage(layer, (int) this.canvasBounds.getX(), (int) this.canvasBounds.getY(), null);
     this.canvasG2.drawImage(layer, layer.x, layer.y, null);
   }
 
@@ -245,7 +254,7 @@ public class LayerHandler {
   }
 
 
-  private void refreshCanvas() {
+  public void refreshCanvas() {
     Integer[] cb = this.rectangleDimToArr(this.canvasBounds);
 
     this.canvasG2.setBackground(Color.WHITE);

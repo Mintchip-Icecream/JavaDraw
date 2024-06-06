@@ -1,9 +1,9 @@
 import java.awt.Color;
 
-public class AdjustRGButton extends Button {
+public class AdjustRGButton__old extends Button {
     private int Value= 0; //When adjusting, it increases or decreases the values, and toolbar updates the rgb values to create the new currentcolor
-    public AdjustRGButton(Canvas canvas, int inputx, int inputy, int inputsize, Color inputColor) {
-        super(canvas, inputx, inputy, inputsize, inputColor);
+    public AdjustRGButton__old(String label, Canvas canvas, int inputx, int inputy, int inputsize, Color inputColor) {
+        super(label, canvas, inputx, inputy, inputsize, inputColor);
     }
     public void activate(){
         changeRGB(super.canvas.mouseX, super.canvas.mouseY);

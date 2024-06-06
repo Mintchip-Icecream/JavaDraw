@@ -79,23 +79,28 @@ public class Canvas {
     mousePressed = true;
     mouseX = x;
     mouseY = y;
-    System.out.println("pendraw method");
+    
     if (y < 100) {
+      System.out.println("tb dragging");
       tb.dragUpdate();
     } else if (this.boundary.contains(x, y)) {
+      System.out.println("pendraw method");
       switch (activebutton) {
-        case "pen":
-        case "eraser":
+        case "Pen":
+        case "Eraser":
           System.out.println("pen/eraser");
           System.out.println(this.activebutton);
           JDLayer sl = this.lh.selectedLayer;
-          Color color = activebutton.equals("pen") ? tb.currentColor : Color.WHITE;// new Color(255, 255, 255, 0);
+          sl.hideBoundary();
+          Color color = activebutton.equals("Pen") ? tb.currentColor : Color.WHITE;// new Color(255, 255, 255, 0);
           sl.g2.setColor(color);
           int offsetX =  x - (int) this.boundary.getX();
           int offsetY =  y - (int) this.boundary.getY();
           sl.g2.fillOval(offsetX, offsetY, tb.penSize, tb.penSize);
+          //sl.g2.fillOval(x, y, tb.penSize, tb.penSize);
           System.out.println("drawing to layer at: " + offsetX + ". " + offsetY);
           lh.drawSelectedLayer();
+       
           break;
       }
     }
