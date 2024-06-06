@@ -29,7 +29,13 @@ public class Pen extends Buttons { //inherits
         else {
             changeButtonColor(0, 0, 0);
         }
-
+    }
+    public void checkActive(){
+        if (!(Canvas.activebutton == "pen")){
+            changeButtonColor(r,g,b);
+        } else {
+            changeButtonColor(0, 0, 0);
+        }
     }
     public void deactivate(){
         System.out.println("eraser deactivate");

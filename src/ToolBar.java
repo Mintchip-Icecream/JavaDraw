@@ -8,7 +8,7 @@ public class ToolBar {
     Graphics2D g2;
     toolBarType tBA;
     ColorButton colorbutton;
-    AdjustValButton rButton, bButton, gButton, penSizeButton, addLayerButton,subtractLayerButton, countingLayerButton;
+    AdjustValButton rButton, bButton, gButton, addPenSizeButton, subtractPenSizeButton, penSizeButton, addLayerButton,subtractLayerButton, countingLayerButton;
     Eraser eraser;
     Pen pen;
     Color CurrentColor = new Color(0,0,0);
@@ -19,8 +19,10 @@ public class ToolBar {
     public ToolBar(Canvas canvas){
         this.canvas=canvas;
         this.g2=canvas.g2;
-        this.pen = new Pen(canvas,100,0,100, Color.black);
-        this.penSizeButton = new AdjustValButton(canvas, 200,0,100,Color.white);
+        this.pen = new Pen(canvas,50,0,100, Color.black);
+        this.addPenSizeButton= new AdjustValButton(canvas, 250, 0, 50, Color.white);
+        this.subtractPenSizeButton= new AdjustValButton(canvas, 250, 50, 50, Color.white);
+        this.penSizeButton = new AdjustValButton(canvas, 150,0,100,Color.white);
         this.eraser = new Eraser(canvas,300,0,100, Color.black);
         this.colorbutton = new ColorButton(canvas,400,0,100, Color.black);
         this.rButton = new AdjustValButton(canvas, 500, 0, 100, red);
@@ -39,6 +41,8 @@ public class ToolBar {
         addLayerButton.draw("+", 25, Color.black);
         subtractLayerButton.draw("-", 75, Color.black);
         countingLayerButton.draw("Layer: " + LayerCount, 50, Color.black);
+        subtractPenSizeButton.draw("-", 75, Color.black);
+        addPenSizeButton.draw("+", 25, Color.black);
 
 
 
@@ -51,6 +55,8 @@ public class ToolBar {
             eraser.update();
             addLayerButton.addValue();
             subtractLayerButton.addValue();
+            addPenSizeButton.addValue();
+            subtractPenSizeButton.addValue();
             clickChange();
         }
     }
@@ -79,6 +85,17 @@ public class ToolBar {
         LayerCount = addLayerButton.getValue()-subtractLayerButton.getValue();
         if (LayerCount <= 0){LayerCount = 1; subtractLayerButton.setValue(0);}
         countingLayerButton.draw("Layer: " + String.valueOf(LayerCount), 50, Color.black);
+
+        int pensizebuttoncombined = addPenSizeButton.getValue()-subtractPenSizeButton.getValue();;
+        penSize = penSize + pensizebuttoncombined;
+        System.out.println(pensizebuttoncombined);
+        if (penSize<= 0){penSize = 1;}
+        addPenSizeButton.setValue(1);
+        subtractPenSizeButton.setValue(1);
+        penSizeButton.draw("Size: "+String.valueOf(penSize), 50, Color.black);
+
+        pen.checkActive();
+        eraser.checkActive();
     }
 
 }

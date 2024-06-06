@@ -24,6 +24,13 @@ public class Eraser extends Buttons { //inherits
             changeButtonColor(255, 255, 255);
         }
     }
+    public void checkActive(){
+        if (!(Canvas.activebutton == "eraser")){
+            changeButtonColor(r,g,b);
+        } else {
+            changeButtonColor(255, 255, 255);
+        }
+    }
     public void updateGraphics(Graphics2D panel) {
         panel.setColor(Color.WHITE);
     }
