@@ -13,17 +13,19 @@ public class Canvas {
   public int mouseY = 0;
   public Color canvasColor = new Color(255, 255, 255);
   public boolean mousePressed = false; // checked by button class to tell whether to activate or not
-  public String activebutton = "colorbutton";
+  public String activebutton = "pen";
   public Graphics2D g2;
   public LayerHandler lh;         
   public ToolBar tb;
   public Rectangle boundary;
+  int padding = 5;
+  boolean isDragging = false;
 
   public Canvas(int width, int height, DrawingPanel dp) {
     this.width = width;
     this.height = height;
     this.g2 = dp.getGraphics();
-    this.tb = new ToolBar(this);
+    this.tb = new ToolBar(this, dp.getWidth(), 100);
     this.render();
     this.lh = new LayerHandler(dp, this.boundary);
     
@@ -31,16 +33,29 @@ public class Canvas {
 
     // add mouse handlers                                
     dp.onMouseDown((x, y) -> changeInitialCoords(x, y));
-    dp.onDrag((x, y) -> penDraw(x, y)); // on penDraw just for testing purposes, will add a check for the tool we're on later                              
+    dp.onDrag((x, y) -> penDraw(x, y));                              
     dp.onMouseUp((x, y) -> mouseRelease());
-    dp.onMouseClick((x,y) -> handleMouseClick(x,y));
-
+    dp.onMouseMove((x, y) -> handleMouseMove(x,y));
   }
 
   public void render() {
+    int y = (int) this.tb.bounds.getHeight() + (this.tb.padding*2) + this.padding; // the +5 is padding between toolbar and canvas
+    this.boundary = new Rectangle(this.padding + 1, y, this.width, this.height);
+    
+    // shadow effect
+    this.g2.setColor(Color.DARK_GRAY);
+    this.g2.drawLine(this.padding, y, this.padding, y + this.height); // left shadow
+    this.g2.drawLine(this.padding, y - 1, this.padding + this.width + 2, y - 1); // top shadow
+    this.g2.drawLine(this.padding + this.width + 1, y - 1, this.padding + this.width + 1, y + this.height); // right inner shadow
+    this.g2.drawLine(this.padding, y + this.height + 1, this.padding + this.width + 2, y + this.height + 1); // bottom inner shadow
+    this.g2.setColor(Color.GRAY);
+    this.g2.drawLine(this.padding, y + this.height + 2, this.padding + this.width + 2, y + this.height + 2); // bottom outer shadow
+    this.g2.drawLine(this.padding + this.width + 2, y - 1, this.padding + this.width + 2, y + this.height); // right outer shadow
+
+    // actual paint area
     this.g2.setColor(DEFAULT_CANVAS_COLOR);
-    this.g2.fillRect(0, 102, width, height); // this is the canvas, art must fall between (x=0), (y=100) and (x=width), (y=height)
-    this.boundary = new Rectangle(0, 102, width, height);
+    this.g2.fillRect(this.padding + 1, y, this.width, this.height); // this is the canvas, art must fall inside
+    
   }
 
   public void changeInitialCoords(int x, int y) {
@@ -50,59 +65,80 @@ public class Canvas {
     mouseY = y;
     mousePressed = true;
     if (y < 100) {
-      tb.update();
+      tb.update(mousePressed);
     } // VERY IMPORTANT, will update all the buttons to see if they're pressed, and if
       // they're pressed they'll activate
   }
 
   public void mouseRelease() {
     mousePressed = false;
+    isDragging = false;
+    tb.update(mousePressed);
   }
 
-  private void handleMouseClick(int x, int y) {
 
-  }
-
-  private void handleMouseDrag(int x, int y) {
-    System.out.println("mouse drag handler");
-    switch(this.activebutton) {
-      case "pen":
-        this.penDraw(x, y);
-        break;  
-
-      
-    }
-  }
-
-  public void penDraw(int x, int y) { // this method is mainly just for testing tool functionality, all methods will
-                                      // fall under one large onDrag update method
+  public void penDraw(int x, int y) { 
+                           
     mousePressed = true;
     mouseX = x;
     mouseY = y;
     
-    if (y < 100) {
-      System.out.println("tb dragging");
+    if (tb.bounds.contains(x, y)) {
       tb.dragUpdate();
     } else if (this.boundary.contains(x, y)) {
-      System.out.println("pendraw method");
-      switch (activebutton) {
-        case "Pen":
-        case "Eraser":
-          System.out.println("pen/eraser");
-          System.out.println(this.activebutton);
-          JDLayer sl = this.lh.selectedLayer;
-          sl.hideBoundary();
-          Color color = activebutton.equals("Pen") ? tb.currentColor : Color.WHITE;// new Color(255, 255, 255, 0);
-          sl.g2.setColor(color);
-          int offsetX =  x - (int) this.boundary.getX();
-          int offsetY =  y - (int) this.boundary.getY();
-          sl.g2.fillOval(offsetX, offsetY, tb.penSize, tb.penSize);
-          //sl.g2.fillOval(x, y, tb.penSize, tb.penSize);
-          System.out.println("drawing to layer at: " + offsetX + ". " + offsetY);
-          lh.drawSelectedLayer();
-       
-          break;
+        // get selected layer, calculate correct x,y coords and apply which ever tool is selected
+        JDLayer sl = this.lh.selectedLayer;
+        int offsetX =  x - (int) this.boundary.getX() - tb.penSize/2; // offset our values by the position of the canvas
+        int offsetY =  y - (int) this.boundary.getY() - tb.penSize/2;
+
+        // hide tool indicator (without this, it would 'stick' to it's last postition before drag started)
+        if(!this.isDragging) this.lh.refreshCanvas();
+
+        switch (activebutton) {
+          case "Pen":
+            int d = tb.penSize;  // circle diameter
+
+            sl.g2.setPaint(tb.currentColor);
+            sl.g2.fillOval(offsetX, offsetY, d, d);
+            lh.drawSelectedLayer();
+            break;
+            
+          case "Eraser":
+            int slen = tb.penSize;  // square side length
+           
+            sl.g2.setBackground(new Color(0,0,0,0));
+            sl.g2.clearRect(offsetX, offsetY, slen, slen);    
+            lh.drawSelectedLayer();
+            lh.refreshCanvas(); // needed for alpha values to be applied immediately
+           
+            break;
       }
+      this.isDragging = true;
+    }
+
+  }
+
+  public void handleMouseMove(int x, int y) {
+    if (this.tb.bounds.contains(x, y)) this.tb.determineButtonHover(x, y);
+    this.moveToolIndicators(x, y);
+  }
+
+  public void moveToolIndicators(int x, int y) {
+    if (!this.boundary.contains(x - tb.penSize/2, y - tb.penSize/2) || !this.boundary.contains(x + tb.penSize/2, y + tb.penSize/2)) return; 
+
+    switch (this.activebutton) {
+      case "Pen":
+        this.lh.refreshCanvas();
+        this.g2.setColor(Color.BLACK);
+        this.g2.drawOval(x - (tb.penSize/2), y - (tb.penSize/2), tb.penSize, tb.penSize);
+        break;
+
+      case "Eraser":
+        this.lh.refreshCanvas();
+        this.g2.setColor(Color.BLACK);
+        this.g2.drawRect(x - (tb.penSize/2), y - (tb.penSize/2), tb.penSize, tb.penSize);
+        break;
+
     }
 
   }

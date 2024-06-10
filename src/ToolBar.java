@@ -1,65 +1,81 @@
 import java.awt.*;
 
 public class ToolBar {
-  public enum toolBarType {
-    pen, type, eraser, layers, select, line, colorpicker
-  }
-
   Canvas canvas;
   Graphics2D g2;
-  toolBarType tBA;
   ColorButton colorbutton;
   AdjustRGBButton rButton, bButton, gButton;
   AdjustValButton addPenSizeButton, subtractPenSizeButton, 
                   penSizeButton, addLayerButton, subtractLayerButton, countingLayerButton;
-  Button moveButton;
-  EraserButton eraser;
+  Button moveButton, eraserButton;
   PenButton pen;
   Color currentColor = new Color(0, 0, 0);
   public int penSize = 5;
   public int LayerCount;
+  Rectangle bounds;
+  int padding = 5; // toolbar padding around buttons/controls  
+  int size = 100;  // button/control size
   Color red = new Color(255, 122, 122);
   Color green = new Color(122, 255, 122);
   Color blue = new Color(122, 122, 255);
+  Color mediumGray = new Color(150, 150, 150);
+  Color darkerMediumGray = new Color(115, 115, 115);
 
-  public ToolBar(Canvas canvas) {
-    int startX = 5; // starting x position to start drawing them
-    int size = 100; // size of buttons
+  public ToolBar(Canvas canvas, int width, int height) {
     this.canvas = canvas;
     this.g2 = canvas.g2;
+    this.bounds = new Rectangle(0, 0, width, height + (this.padding * 2));
 
-    this.moveButton = new Button("Move", canvas, startX, 0, size, Color.WHITE);
+    int h = (int) this.bounds.getHeight();
+    this.g2.setColor(Color.BLACK);
+    this.g2.drawLine(0, h - 1, width, h - 1);
+    this.g2.setColor(Color.WHITE);
+    this.g2.drawLine(0, h, width, h);
+
     
+    this.moveButton = new Button("Move", canvas, padding, padding, size, mediumGray);
     moveButton.draw();
 
-    this.pen = new PenButton("Pen", canvas, startX + (size * 1), 0, size, Color.black);
-    this.penSizeButton = new AdjustValButton("Size: " + penSize, canvas, startX + (size * 2), 0, size, Color.white);
-    this.addPenSizeButton = new AdjustValButton("+", canvas, startX + (size * 3), 0, size/2, Color.white);
-    this.subtractPenSizeButton = new AdjustValButton("-", canvas, startX + (size * 3), size/2, size/2, Color.white);
+    this.pen = new PenButton("Pen", canvas, (padding* 2) + (size * 1), padding, size, mediumGray);
+    this.penSizeButton = new AdjustValButton("Size: " + penSize, canvas, (padding* 3)  + (size * 2), padding, size, darkerMediumGray);
+    this.penSizeButton.currentLabelColor = Color.LIGHT_GRAY;
+    this.addPenSizeButton = new AdjustValButton("+", canvas, (padding* 3) + (size * 3), padding, size/2, mediumGray);
+    this.subtractPenSizeButton = new AdjustValButton("-", canvas, (padding* 3) + (size * 3), (size/2) + padding, size/2, mediumGray);
     this.pen.draw();
     this.penSizeButton.draw();
     this.subtractPenSizeButton.draw();
     this.addPenSizeButton.draw();
     this.addPenSizeButton.setValue(this.penSize);
     
-    this.eraser = new EraserButton("Erase", canvas, startX + (size * 4), 0, size, Color.WHITE);
-    this.eraser.draw();
+    // note to team: I ended up moving a lot duplcated functionality between the button sublcasses 
+    // to the parent Button class. after doing so, the EraserButton class didn't have any added functionality 
+    // than the Button class, so I changed eraserButton to type Button -Jason
+    this.eraserButton = new Button("Eraser", canvas, (padding* 4) + (size * 4) - size/2, padding, size, mediumGray);
+    this.eraserButton.draw();
 
-    this.colorbutton = new ColorButton("Color", canvas, startX + (size * 5), 0, size, Color.black);
-    this.rButton = new AdjustRGBButton("R: 0", canvas, startX + (size * 6), 0, size, red);
-    this.rButton.labelColor = Color.WHITE;
-    this.gButton = new AdjustRGBButton("G: 0", canvas, startX + (size * 7), 0, size, green);
-    this.gButton.labelColor = Color.WHITE;
-    this.bButton = new AdjustRGBButton("B: 0", canvas, startX + (size * 8), 0, size, blue);
-    this.bButton.labelColor = Color.WHITE;
+    this.colorbutton = new ColorButton("Color", canvas, (padding* 5) + (size * 5) - size/2, padding, size, Color.black);
+    this.colorbutton.currentBgColor = Color.BLACK;
+    this.colorbutton.currentLabelColor = Color.WHITE;
+    this.rButton = new AdjustRGBButton("R: 0", canvas, (padding* 5)+ (size * 6) - size/2, padding, size, red, 'r');
+    //this.rButton.activeLabelColor = Color.WHITE;
+    this.rButton.currentLabelColor = Color.WHITE;
+    this.gButton = new AdjustRGBButton("G: 0", canvas, (padding* 5) + (size * 7) - size/2, padding, size, green, 'g');
+    //this.gButton.activeLabelColor = Color.WHITE;
+    this.gButton.currentLabelColor = Color.WHITE;
+    this.bButton = new AdjustRGBButton("B: 0", canvas, (padding* 5) + (size * 8) - size/2, padding, size, blue, 'b');
+    //this.bButton.activeLabelColor = Color.WHITE;
+    this.bButton.currentLabelColor = Color.WHITE;
     this.colorbutton.draw();
-    this.bButton.draw();
-    this.gButton.draw();
     this.rButton.draw();
+    this.gButton.draw();
+    this.bButton.draw();
+    
+   
 
-    this.countingLayerButton = new AdjustValButton("Layer: 1", canvas, startX + (size * 9), 0, size, Color.white); // displays which layer we're on
-    this.addLayerButton = new AdjustValButton("+", canvas, startX + (size * 10), 0, size/2, Color.white);
-    this.subtractLayerButton = new AdjustValButton("-", canvas, startX + (size * 10), size/2, size/2, Color.white);
+    this.countingLayerButton = new AdjustValButton("Layer: 1", canvas, (padding* 6) + (size * 9) - size/2, padding, size, darkerMediumGray); // displays which layer we're on
+    this.addLayerButton = new AdjustValButton("+", canvas, (padding* 6)+ (size * 10) - size/2, padding, size/2, mediumGray);
+    this.subtractLayerButton = new AdjustValButton("-", canvas, (padding* 6) + (size * 10) - size/2, (size/2) + padding, size/2, mediumGray);
+    this.addLayerButton.setValue(1);
     this.addLayerButton.draw();
     this.subtractLayerButton.draw();
     this.countingLayerButton.draw();
@@ -68,64 +84,51 @@ public class ToolBar {
   // taskbar, if it's on the taskbar it'll update all of the buttons (this is to
   // reduce the amount of memory it consumes per second)
 
-  public void update() {
-    System.out.println(this.canvas.activebutton);
-    this.deactivateAll();
-    this.determineButtonPress();
+  public void update(boolean mousePressed) {
+    if (mousePressed) {
+      this.canvas.lh.selectedLayer.hideBoundary();  // make sure isn't showing when any other button is pressed
+      this.canvas.lh.refreshCanvas();
+      this.deactivateAll();
+      this.determineButtonPress();
 
-    switch (this.canvas.activebutton) {
-      case "Move":
-        this.canvas.lh.selectedLayer.drawBoundary();
-        this.canvas.lh.drawSelectedLayer();
-        break;
-
-      case "Pen":
-        System.out.println("Pen clicked");
-        this.canvas.lh.selectedLayer.hideBoundary();
-        this.canvas.lh.refreshCanvas();
-
-        // here incase we add more functionality other than what's on canvas an in button itself
-        break;
-      
-      case "Eraser":
-        this.canvas.lh.selectedLayer.hideBoundary();
-        this.canvas.lh.drawSelectedLayer();
-        // here incase we add more functionality other than what's on canvas an in button itself
-        break;
-    }
-      
-      
       if (this.addPenSizeButton.isPressed()) {
-        //addPenSizeButton.addValue();
         this.refreshPenSize();
+        addPenSizeButton.changeButtonColor(addPenSizeButton.inactiveBgColor);
       } 
       else if (this.addLayerButton.isPressed()) {
-        //addLayerButton.addValue();
         this.refreshLayerCount();
+        addLayerButton.changeButtonColor(addLayerButton.inactiveBgColor);
         this.canvas.lh.selectNextLayer();
       } 
       else if (this.subtractPenSizeButton.isPressed()) {
-        //subtractPenSizeButton.addValue();
         this.refreshPenSize();
+        subtractPenSizeButton.changeButtonColor(subtractPenSizeButton.inactiveBgColor);
       } 
       else if (this.subtractLayerButton.isPressed()) {
-        //subtractLayerButton.addValue();
         this.refreshLayerCount();
+        subtractLayerButton.changeButtonColor(subtractLayerButton.inactiveBgColor);
         this.canvas.lh.selectPrevLayer();
+      } else {
+        
+        switch (this.canvas.activebutton) {
+          case "Move":
+            this.canvas.lh.selectedLayer.drawBoundary();
+            this.canvas.lh.drawSelectedLayer();
+            break;
+
+          case "Pen":
+          case "Eraser":
+            this.canvas.lh.selectedLayer.hideBoundary();
+            this.canvas.lh.refreshCanvas();
+            break;
+        }
       }
-      
-    /* 
-    if (this.canvas.mousePressed) {
-      moveButton.update();
-      pen.update();
-      eraser.update();
-      addLayerButton.addValue();
-      subtractLayerButton.addValue();
-      addPenSizeButton.addValue();
-      subtractPenSizeButton.addValue();
-      clickChange();
+    } else {  // mousePressed == false
+      addPenSizeButton.changeButtonColor(addPenSizeButton.activeBgColor);
+      addLayerButton.changeButtonColor(addLayerButton.activeBgColor);
+      subtractPenSizeButton.changeButtonColor(subtractPenSizeButton.activeBgColor);
+      subtractLayerButton.changeButtonColor(subtractLayerButton.activeBgColor);
     }
-      */
   }
 
   public void dragUpdate() {
@@ -133,45 +136,16 @@ public class ToolBar {
       rButton.update();
       gButton.update();
       bButton.update();
-      //penSizeButton.update();
       change();
     }
   }
 
   public void change() {
-    this.currentColor = new Color(rButton.getValue(), gButton.getValue(), bButton.getValue());
-    System.out.println(currentColor.toString());
-    
-    /*penSize = penSizeButton.getValue();
-    if (penSize < 5) {
-      penSize = 5;
-    }*/
-
+    this.currentColor = new Color(rButton.getValue(), gButton.getValue(), bButton.getValue());  
     colorbutton.changeColor(currentColor);
-   
-    //g2.setColor(Color.white);
-    //g2.drawString("R: " + String.valueOf(rButton.getValue()), 425, 45);
-    //g2.drawString("G: " + String.valueOf(gButton.getValue()), 425, 65);
-    //g2.drawString("B: " + String.valueOf(bButton.getValue()), 425, 85);
-    
-    //penSizeButton.setName("Size: " + String.valueOf(penSize));
-    //penSizeButton.draw();
   }
 
-  public void clickChange() {
-    
-    
-    
   
-    
-    //addPenSizeButton.setValue(1);
-    //subtractPenSizeButton.setValue(1);
-    
-
-    pen.checkActive();
-    eraser.checkActive();
-  }
-
   private void refreshPenSize() {
     this.penSize = addPenSizeButton.getValue() - subtractPenSizeButton.getValue();
         if (this.penSize < 5) {
@@ -196,21 +170,31 @@ public class ToolBar {
   private void deactivateAll() {
     this.moveButton.deactivate();
     this.pen.deactivate();
-    this.eraser.deactivate();
+    this.eraserButton.deactivate();
   }
 
   private void determineButtonPress() {
     // all buttons have their own "update" method which checks if mouse position
-    // is within the button's coord, and if it is, activates the button
+    // is within the button's coordinates, and if it is, activates the button
     
     moveButton.update();
     pen.update();
-    eraser.update();
+    eraserButton.update();
     addLayerButton.update();
     subtractLayerButton.update();
     addPenSizeButton.update();
     subtractPenSizeButton.update();
     
+  }
+
+  public void determineButtonHover(int x, int y) {
+    moveButton.checkHover(x, y);
+    pen.checkHover(x, y);
+    eraserButton.checkHover(x, y);
+    addLayerButton.checkHover(x, y);
+    subtractLayerButton.checkHover(x, y);
+    addPenSizeButton.checkHover(x, y);
+    subtractPenSizeButton.checkHover(x, y);
   }
 
 }

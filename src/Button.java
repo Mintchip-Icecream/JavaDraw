@@ -6,12 +6,14 @@ public class Button {
   private int y;
   private int size;
   protected String name = "";
-  protected Color color, 
-                  inactiveColor = Color.DARK_GRAY, 
-                  labelColor = Color.BLACK;
+  protected Color currentBgColor, activeBgColor, currentLabelColor,
+                  inactiveBgColor = new Color(115, 115, 115), 
+                  activeLabelColor = Color.WHITE,
+                  inactiveLabelColor = Color.BLACK;
+
   public Rectangle bounds;
   Canvas canvas;
-  Graphics g2;
+  Graphics2D g2;
   // for Mr. Forkner, the code for this specific button references this video
   // (this class is the only thing borrowed from outside sources as far as I
   // know): https://youtu.be/MHhFTqAHiOA?si=c74su5JJdWTdQWH2
@@ -23,20 +25,22 @@ public class Button {
     x = inputx;
     y = inputy;
     size = inputsize;
-    color = inputColor;
+    this.activeBgColor = inputColor;
+    this.currentBgColor = this.inactiveBgColor;
+    this.currentLabelColor = this.inactiveLabelColor;
     this.bounds = new Rectangle(x, y, size, size);
   }
 
   public void draw() {
     g2.setColor(Color.black);  
     g2.drawRect(x, y, size, size);  // border
-    g2.setColor(color);
+    g2.setColor(this.currentBgColor);
     g2.fillRect(x + 2, y + 2, size - 2, size - 2);
     this.drawLabel();
   }
 
   public void drawLabel() {
-    g2.setColor(labelColor);
+    g2.setColor(this.currentLabelColor);
     g2.setFont(new Font("Arial", Font.BOLD,15));
 
     // https://stackoverflow.com/questions/258486/calculate-the-display-width-of-a-string-in-java
@@ -53,8 +57,6 @@ public class Button {
 
   public boolean isPressed() {
     return this.canvas.mousePressed && this.bounds.contains(this.canvas.mouseX, this.canvas.mouseY);
-    //return this.canvas.mousePressed && this.canvas.mouseX >= x && this.canvas.mouseX <= x + size && this.canvas.mouseY >= y
-    //    && this.canvas.mouseY <= y + size;
   }
 
   public void update() {
@@ -64,14 +66,15 @@ public class Button {
   }
 
   public void changeButtonColor (Color color){
-    this.color = color;
+    this.currentBgColor = color;
     draw();
 }
 
   public void activate() {
-    if (!(this.canvas.activebutton == this.name)) {
-      System.out.println(this.name + " activated");
-      changeButtonColor(color);
+    if (!this.canvas.activebutton.equals(this.name)) {
+      this.currentLabelColor = this.activeLabelColor;
+      changeButtonColor(activeBgColor);
+    
       this.canvas.activebutton = this.name;
     }
     else {
@@ -80,16 +83,30 @@ public class Button {
   }
 
   public void checkActive(){ 
-    if (!(this.canvas.activebutton == this.name)){
-        changeButtonColor(color);
+    if (!this.canvas.activebutton.equals(this.name)) {
+        changeButtonColor(activeBgColor);
     } else {
-        changeButtonColor(inactiveColor);
+        changeButtonColor(inactiveBgColor);
     }
   }
 
   public void deactivate(){
-    System.out.println(this.name + " deactivate");
-    changeButtonColor(inactiveColor);
+    this.currentLabelColor = this.inactiveLabelColor;
+    changeButtonColor(inactiveBgColor);
+  }
+
+  public void checkHover(int x, int y) {
+    if (this.canvas.activebutton.equals(this.name)) return;
+
+    if (this.bounds.contains(x, y)) {
+      this.currentBgColor = this.activeBgColor;
+      this.currentLabelColor = this.activeLabelColor;
+    } else {
+      this.currentBgColor = this.inactiveBgColor;
+      this.currentLabelColor = this.inactiveLabelColor;
+    }
+
+    this.draw();
   }
 
   public int getX() {
@@ -100,8 +117,8 @@ public class Button {
     return y;
   }
 
-  public Color getColor() {
-    return color;
+  public Color getActiveColor() {
+    return activeBgColor;
   }
 
   public int getSize() {

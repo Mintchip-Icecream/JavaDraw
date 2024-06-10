@@ -1,5 +1,6 @@
 import java.awt.Color;
 import java.awt.GridLayout;
+import java.time.chrono.ThaiBuddhistChronology;
 
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -7,12 +8,12 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 public class Main {
-  final static Color DEFAULT_PANEL_BG = Color.darkGray;
+  final static Color DEFAULT_PANEL_BG = Color.lightGray;
   final static int PANEL_WIDTH = 1600;
   final static int PANEL_HEIGHT = 900;
 
   private static int canvasWidth = 800;  // defaults
-  private static int canvasHeight = 800;
+  private static int canvasHeight = 700;
 
 
   private static void requestCanvasSize(){
@@ -43,14 +44,16 @@ public class Main {
     }
   }
 
+   
+
   public static void main(String[] args) {
-      //requestCanvasSize();
+      requestCanvasSize();
 
-      DrawingPanel dp = new DrawingPanel(PANEL_WIDTH, PANEL_HEIGHT);
-      Canvas canvas = new Canvas(canvasWidth, canvasHeight, dp);
-
+      int pnlWidth = PANEL_WIDTH > (canvasWidth + 50) ? PANEL_WIDTH : canvasWidth + 50;
+      int pnlHeight = PANEL_HEIGHT > (canvasHeight + 150) ? PANEL_HEIGHT : canvasHeight + 150;
+      DrawingPanel dp = new DrawingPanel(pnlWidth, pnlHeight);
       dp.setBackground(DEFAULT_PANEL_BG);
-    
+      new Canvas(canvasWidth, canvasHeight, dp);
 
       
 

@@ -3,83 +3,85 @@ import java.awt.Cursor;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.lang.reflect.Field;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
+import java.util.TreeMap;
 import javax.swing.JPanel;
 
+
+/**
+ * Handler for JDLayer instances.  Handles mouse events meant to draw on the layers created from JDLayers.  
+ * Stores all layers into a TreeMap.  Acts as a mediator between Canvas and JDLayer.
+ */
 public class LayerHandler {
  
-  Map<String, JDLayer> layers = new HashMap<>();
+  Map<String, JDLayer> layers = new TreeMap<>();
   Graphics2D canvasG2;
   JDLayer selectedLayer;
   Rectangle canvasBounds;
   
 
+  /**
+   * Constructs a Layer Handler to faciliate handling all the layers in the Java Draw App. Requires the Drawing Panel
+   * instance and the boundary of the canvas.  
+   * @param dp The instance of Drawing Panel that everything draw to.  It is only used to attach mouse event handling
+   * @param canvasBoundary A Rectangle representing the coordinates, widht, and height of the canvas.
+   */
   public LayerHandler(DrawingPanel dp, Rectangle canvasBoundary) {
     this.canvasG2 = dp.getGraphics();
     this.canvasBounds = canvasBoundary;
     this.addListeners(dp);
   }
 
+  /**
+   * Adds the handlers for when mouse events occur
+   * @param dp The DrawingPanel instance to attached the mouse listeners to
+   */
   private void addListeners(DrawingPanel dp) {
-    dp.onMouseClick((x,y) -> this.handleMouseClick(x, y));
     dp.onMouseDown((x, y) -> this.handleMouseDown(x, y));
     dp.onMouseUp((x, y) -> this.handleMouseUp(x, y));
     dp.onMouseDrag((x, y) -> this.handleMouseDrag(x, y));
     dp.onMouseMove((x, y) -> this.handleMouseMove(x, y, dp));
-    dp.onKeyUp(key -> this.handleKeyPress(key));
+    //dp.onKeyUp(key -> this.handleKeyPress(key));
 
   }
 
-  // mouse event handlers
-  private void handleMouseClick(int x, int y) {
-    System.out.println("mouse clicked");
-  }
-
+  /**
+   * Handles mousedown event.  If mousedown happens inside the selected layer, the coords are saved so the mousedrag
+   * listener can tell if a layet should be dragged and in which direction.
+   * @param x x value of when the mouse button was pressed
+   * @param y y value of when the mouse button was pressed
+   */
   private void handleMouseDown(int x, int y) {
-    //System.out.println(this.selectedLayer == null);
-    //System.out.println(this.selectedLayer.isSelected);
-    //System.out.println(this.selectedLayer.boundaryContainsXY(x, y));
-
     if (this.selectedLayer == null || !this.selectedLayer.isBoundaryOn || !this.selectedLayer.boundaryContainsXY(x, y)) return;
-    System.out.println("lh drag");
+    
     JDLayer l = this.selectedLayer;
     
     l.mouseX = x;
     l.mouseY = y;
     l.canDrag = true;
-   // System.out.println(l.getX() + " " + l.getY());
+
   }
 
+  /**
+   * Handles mouseup event.  Makes sure that the selected layer's canDrag flag is turned off.
+   * @param x x value of when the mouse button was released
+   * @param y y value of when the mouse button was released
+   */
   private void handleMouseUp(int x, int y) {
     if (this.selectedLayer == null || !this.selectedLayer.isSelected) return;
-
-    JDLayer l = this.selectedLayer;
-
-    //System.out.println(l.getX() + " " + l.getY());
-    if (l.getX() != 0 && l.getY() != 0) {
-      //l.refresh();
-      //this.refreshCanvas();
-    }
 
     this.selectedLayer.canDrag = false;
   }
 
+  /**
+   * Handles mousedrag event.  If mouse was pressed inside the selected layer, and the mouse is dragged,
+   * the layer moves with the mouse.
+   * @param x x value of the current mouse position
+   * @param y y value of the current mouse position
+   */
   private void handleMouseDrag(int x, int y) {
-    
-   
-    if ( 
-      this.selectedLayer == null || 
-      !this.selectedLayer.canDrag
-      
-    )
-      return;
-
-      //System.out.println(this.canvasBounds.getBounds());
-      //System.out.println(this.selectedLayer.getBoundary().getBounds());
-      //System.out.println(this.canvasBounds.contains(this.selectedLayer.getBoundary()));      
-    System.out.println("dragging layer");
+    if (this.selectedLayer == null || !this.selectedLayer.canDrag || !this.canvasContainsLayer(x, y)) return;
+  
     JDLayer l = this.selectedLayer;
     int newX = l.x + (x - l.mouseX);
     int newY = l.y + (y - l.mouseY);
@@ -95,6 +97,14 @@ public class LayerHandler {
     this.refreshCanvas();
   }
 
+  /**
+   * Handles mousemove events.  Currently is used only to detect if mouse cursoe is hovering over the layer, 
+   * and if so, display a different cursor. Was also used to change cursor when handles were shown in the border
+   * (for resize functionality), but that feature was abandoned.
+   * @param x x value of the current mouse position
+   * @param y y value of the current mouse position
+   * @param dp the DrawingPanel instance  required in order to change the mouse cursor.
+   */
   private void handleMouseMove(int x, int y, DrawingPanel dp)  {
     JPanel imgPnl = this.getImagePanel(dp);
 
@@ -128,7 +138,11 @@ public class LayerHandler {
       imgPnl.setCursor(new Cursor(Cursor.DEFAULT_CURSOR)); 
   }
 
-  // key press handlers
+  /**
+   * NOT CURRENTLY IN USE.  Handles keypress events.  Was used during testing of functionality meant for mouseevents, while 
+   * waiting for the Canvas code.
+   * @param key a char value representing the key that was pressed
+   */
   private void handleKeyPress(char key) {
     if ("sdp".indexOf(key) == -1 || this.selectedLayer == null) return;
       
@@ -159,6 +173,33 @@ public class LayerHandler {
 
   }
 
+  /**
+   * Detects if the current layer is complely within the canvas's boundary.
+   * @param mouseX
+   * @param mouseY
+   * @return
+   */
+  public boolean canvasContainsLayer(int mouseX, int mouseY) {
+    JDLayer l = this.selectedLayer;
+    Rectangle b = l.getBoundary();
+    int newX = l.x + (mouseX - l.mouseX);
+    int newY = l.y + (mouseY - l.mouseY);
+    double cx1 = this.canvasBounds.getMinX() - 2; // -2 comes from testing, seems to need the adjustment to get right to the edge
+    double cy1 = this.canvasBounds.getMinY() - 2; // of the canvase
+    double cx2 = this.canvasBounds.getMaxX() + 2;
+    double cy2 = this.canvasBounds.getMaxY() + 2;
+    double lx1 = b.getMinX() + newX;
+    double ly1 = b.getMinY() + newY;
+    double lx2 = b.getMaxX() + newX;
+    double ly2 = b.getMaxY() + newY;
+
+    return ((lx1 > cx1 && lx2 < cx2) && (ly1 > cy1 && ly2 < cy2));
+  }
+
+  /**
+   * Creates a new layer and adds it to the TreeMap.  Does not draw it to the canvas.
+   * @return A copy of the layer just created
+   */
   public JDLayer addLayer() {
     String layerName = "Layer " + (this.layers.size() + 1);
 
@@ -174,7 +215,15 @@ public class LayerHandler {
     }
   }
 
-  // NOTE: double recursion with renameLayer
+  /**
+   * Deletes layer with specified name.  Calls renameLayer to reaname the rest of the layers in order to mainain
+   * continuity between layer numbers.   For example, if there are 10 layers, and 'Layer 6' gets deleted, 'Layer 7'
+   * becomes the new 'Layer 6', 'Layer 8' becomes the new 'Layer 7', and so on.
+   * 
+   * NOTE: Uses double recursion with renameLayer.  i.e. recursively calls renameLayer until all layers are renamed.
+   * which recursilvely calls this method to delete the layer  that was copied to a new name.
+   * @param layerName name of layer to be deleted
+   */
   public void deleteLayer(String layerName) {
 
     if (!layerExists(layerName)) 
@@ -187,7 +236,13 @@ public class LayerHandler {
     }
   }
 
-  // NOTE: double recursion with deleteLayer
+  /**
+   * Renames layer with the specificed name to the new specified name.
+   * 
+   * NOTE: Uses double recursion with deleteLayer
+   * @param layerName name of the layer to rename
+   * @param newName new name of the layer
+   */
   public void renameLayer(String layerName, String newName) {
     int layerNum = this.parseLayerInt(layerName);
 
@@ -204,13 +259,22 @@ public class LayerHandler {
     }
   }
 
+
+/**
+ * Sets the layer with the specified name as the selected (AKA current) layer
+ * @param layerName name of the layer to select
+ * @param showBoundary boolean determining if the layer should show the boundary after selection
+ */
   public void selectLayer(String layerName, Boolean showBoundary) {
     JDLayer layer = this.getLayer(layerName);
     layer.select(showBoundary);
     this.selectedLayer = layer;
-    this.refreshCanvas();
+    if (showBoundary) this.refreshCanvas();
   }
 
+  /**
+   * Selects the previous layer in the TreeMap.  If current layer is the first layer, the method does nothing.
+   */
   public void selectPrevLayer() {
     int layerNumber = this.parseLayerInt(this.selectedLayer.getName());
     
@@ -224,6 +288,9 @@ public class LayerHandler {
     } 
   }
 
+  /**
+   * Selects the next layer in the TreeMap.  If current layer is the last layer, the method does nothing.
+   */
   public void selectNextLayer() {
     int layerNumber = this.parseLayerInt(this.selectedLayer.getName());
     
@@ -239,21 +306,33 @@ public class LayerHandler {
     } 
   }
 
+  /**
+   * Deselects the specified layer
+   * @param layerName name of layer to deselect
+   */
   public void deselectLayer(String layerName) {
     this.selectedLayer.deselect();
     this.refreshCanvas();
   }
 
+  /**
+   * Draws the specified layer to the canvas
+   * @param layer the name of the layer to draw
+   */
   private void drawLayer(JDLayer layer) {
-    //this.canvasG2.drawImage(layer, (int) this.canvasBounds.getX(), (int) this.canvasBounds.getY(), null);
     this.canvasG2.drawImage(layer, layer.x, layer.y, null);
   }
 
+  /**
+   * Draws the current selected layer to the canvas
+   */
   public void drawSelectedLayer() {
     this.drawLayer(selectedLayer);
   }
 
-
+  /**
+   * Refreshed the canvas by setting the backgound to WHITE and doing a clearRect on the entire canvas
+   */
   public void refreshCanvas() {
     Integer[] cb = this.rectangleDimToArr(this.canvasBounds);
 
@@ -262,6 +341,11 @@ public class LayerHandler {
     this.layers.forEach((name, layer) -> this.drawLayer(layer));
   }
 
+  /**
+   * Takes a rectangle and converts it's x, y, width, and height properties to an array
+   * @param r a Rectangle instance to get properties of
+   * @return returns an array of Integers
+   */
   private Integer[] rectangleDimToArr(Rectangle r) {
     Integer[] dims = new Integer[4];
 
@@ -274,7 +358,6 @@ public class LayerHandler {
   }
 
   
-
   // getters
   public JDLayer getLayer(String layerName) {
     if (layerExists(layerName)) 
@@ -301,54 +384,8 @@ public class LayerHandler {
     return null;
   }
 
-  private int parseLayerInt(String layerName) { return Integer.valueOf(layerName.split(" ")[1]); }
+  private int parseLayerInt(String layerName) { return Integer.parseInt(layerName.split(" ")[1]); }
   public Boolean layerExists(String layerName) { return this.layers.containsKey(layerName); }
 
-  public static void main(String[] args) throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-    final int TOTALLAYERS = 20;
-    DrawingPanel dp = new DrawingPanel(800, 800);
-    LayerHandler lh = new LayerHandler(dp, new Rectangle(0, 0, 800, 800));
-    Color[] colors = {Color.BLACK, Color.GREEN, Color.BLUE, Color.PINK, Color.GRAY, Color.RED};
-    Random rand = new Random();
-    
-    // draw some random lines for testing
-    for (int i = 0; i <= TOTALLAYERS/2; i++) {
-      int x1 = rand.nextInt(800);
-      int y1 = rand.nextInt(800);
-      int x2 = rand.nextInt(800);
-      int y2 = rand.nextInt(800);
-      JDLayer l = lh.addLayer();
-
-      l.g2.setColor(colors[rand.nextInt(colors.length)]);
-      l.g2.drawLine(x1, y1, x2, y2);
-      lh.drawLayer(l);
-    }
-
-    // draw some random ovals for testing
-    for (int i = TOTALLAYERS/2 + 1; i < TOTALLAYERS; i++) {
-      int x = rand.nextInt(800);
-      int y = rand.nextInt(800);
-      int r = rand.nextInt(100) + 1;
-      JDLayer l = lh.addLayer();
-
-      l.g2.setColor(colors[rand.nextInt(colors.length)]);
-      l.g2.fillOval(x, y, r, r);
-      lh.drawLayer(l);
-    }
-
-    
-    //l2g2.drawString("\uD83D\uDDD1", 50, 200); // trashcan icon
-    
-    // get random layer for drag testing
-    //lh.selectedLayer = lh.getLayer("Layer " + ((TOTALLAYERS/2)+2));
-
-    //System.out.println(lh.layers.keySet().toString());
-    //System.out.println(lh.layers.size());
-    //lh.deleteLayer("Layer 12");
-    //System.out.println(lh.layers.keySet().toString());
-    //System.out.println(lh.layers.size());
-
-
-    
-  }
+  public static void main(String[] args)  {  }
 }

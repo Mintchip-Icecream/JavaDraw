@@ -5,12 +5,13 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Stroke;
 import java.awt.image.BufferedImage;
-
-
 import java.io.File;
 import java.io.IOException;
 import javax.imageio.ImageIO;
 
+/**
+ * JDLayer - Extends BufferedImage.  Acts as a "layer" that can be painted on to in the Java Draw app. 
+ */
 public class JDLayer extends BufferedImage {
   final static int SELECT_BOX_PADDING = 2;
   final static int SELECT_BOX_HANDLE_SIZE = SELECT_BOX_PADDING - 2;
@@ -23,7 +24,15 @@ public class JDLayer extends BufferedImage {
   Rectangle boundary, handleNW, handleNE, handleSW, handleSE;  // note: handles have been abondoned
   BufferedImage buffer;  // buffer to save version of layer to before drawing border for select method
   Boolean isSelected = false, canDrag = false, isBoundaryOn = false;
-  
+
+  /**
+   * Constructs a layer, which is a buffered image.  Full acccess is available to the Graphics2D object, plus
+   * all other methods that comes with a buffered image.  In short, the returned layer can be treated just like
+   * another other buffered image, with additional methods to used my the layer handler.  
+   * @param layerName name to give the layer.  (At the momement Layer Handler assigns the name 'Layer' followed
+   * by a number.)
+   * @param canvasBoundary a rectangle object the same size and positin as the canvas being drawn to.
+   */
   public JDLayer(String layerName, Rectangle canvasBoundary) {
     super((int) canvasBoundary.getWidth(), (int) canvasBoundary.getHeight(), BufferedImage.TYPE_INT_ARGB);
     this.name = layerName;
@@ -32,8 +41,15 @@ public class JDLayer extends BufferedImage {
     this.y = (int) canvasBoundary.getY();
     this.buffer = new BufferedImage((int) canvasBoundary.getWidth(), (int) canvasBoundary.getHeight(), BufferedImage.TYPE_INT_ARGB); 
     this.g2Buffer = this.buffer.createGraphics();
+    this.g2.setBackground(new Color(0,0,0,0));  //ensures layer is transparent (except for the area being painted)
   }
 
+  
+  /**
+   * Detects the highest and lowest x and y values on the layer that do not have transparent pixels.  Cycles through each 
+   * pixel and checks for transparancy.  The highest and lowest values are converted into a Rectangle object that is used
+   * to draw a borderd around layer.
+   */
   public void detectBoundary() {
     int layerW = this.getWidth();
     int layerH = this.getHeight();
@@ -43,18 +59,13 @@ public class JDLayer extends BufferedImage {
     int lowerY = layerH;
     Boolean isEmpty = true;
 
-    System.out.println("Detecting Boundary...");
-    printVars("", "Layer: ", this.getX()+"", this.getY()+"", layerW+"", layerH+"");
-
     this.boundary = new Rectangle(upperX, upperY, lowerX, lowerY);  // first set boundary to size of layer
-    int a = 0;
+
     // loop through all the pixels in the layer to check for non transarent pixels
     for (int x = 0; x < layerW; x++) {
       for (int y = 0; y < layerH; y++) {
         if (this.getPixelAlpha(x, y) != 0) {
-          a++;
           isEmpty = false;
-          //System.out.print(x + ", " + y + " ");
           lowerX = x < lowerX ? x : lowerX;
           lowerY = y < lowerY ? y : lowerY;
           upperX = x > upperX ? x : upperX;
@@ -62,8 +73,6 @@ public class JDLayer extends BufferedImage {
         }
       }
     }
-    System.out.println("alphas: "+a);
-    printVars("", "Boundary bounds Before Padding: ", lowerX+"", lowerY+"", upperX+"", upperY+"");
 
     // pad boundary and ensure boundary the canvas's boundary
     lowerX = lowerX >= SELECT_BOX_PADDING ? lowerX - SELECT_BOX_PADDING : 0;
@@ -71,12 +80,13 @@ public class JDLayer extends BufferedImage {
     upperX = upperX <= (layerW - SELECT_BOX_PADDING) ? upperX + SELECT_BOX_PADDING : layerW;
     upperY = upperY <= (layerH - SELECT_BOX_PADDING) ? upperY + SELECT_BOX_PADDING : layerH;
 
-    // if layer isn't empty, shrink boundary to correct size
+    // if layer isn't empty, shrink boundary to correct size 
+    // (if it is empty, it will just remain the same size as the whole layer)
     if (!isEmpty) this.boundary = new Rectangle(lowerX, lowerY, upperX - lowerX, upperY - lowerY);
 
-    printVars("", "Boundary x,y,w,h After Padding: ", lowerX+"", lowerY+"", (upperX - lowerX)+"", (upperY - lowerY)+"");
 
     // build resize handles at corners
+    // note: not currently in use
     int  // positions for handles
       x2 = upperX - SELECT_BOX_HANDLE_SIZE,
       y2 = upperY - SELECT_BOX_HANDLE_SIZE;
@@ -88,7 +98,12 @@ public class JDLayer extends BufferedImage {
 
   }
 
-  // checks if x, y coords are within the layer's bounds
+  /**
+   * returns whether or not the provided coords fall within the area of the boundary.
+   * @param x x value of the coord to check
+   * @param y y value of the coord to check
+   * @return boolean
+   */
   public Boolean boundaryContainsXY(int x, int y) {
     if (this.getBoundary() == null) return false;
 
@@ -99,7 +114,14 @@ public class JDLayer extends BufferedImage {
     return this.getBoundary().contains(offsetX , offsetY);
   }
 
-  // checks if x, y is within the layer's bound and returns the element name
+  /**
+   * Returns the name of the element found within the layer's bounds, if any.  Was useful when detecting
+   * mouse hover or click of one of the handles used to resize the layer, but that functionality has been 
+   * abandoned
+   * @param x x value of the coord to check
+   * @param y y value of the coord to check
+   * @return returns a String reprresenting the name of the element.  handles are named based on compass values
+   */
   public String getBoundaryElAtXY(int x, int y) {
     String elName = null;
     
@@ -118,6 +140,10 @@ public class JDLayer extends BufferedImage {
     return elName;
   }
 
+  /**
+   * Draws a dashed border around the layer.  Used to help distinguish between layers and faciliate the user moving
+   * the layer around the canvas.
+   */
   public void drawBoundary() {
     //if (this.isBoundaryOn) return;
     
@@ -159,6 +185,9 @@ public class JDLayer extends BufferedImage {
     this.isBoundaryOn = true;
   }
 
+  /**
+   * Hides the boundary. i.e. the border around the layer.
+   */
   public void hideBoundary() {
     if (!this.isBoundaryOn) return;
 
@@ -167,10 +196,24 @@ public class JDLayer extends BufferedImage {
     this.isBoundaryOn = false;
   }
 
+  /**
+   * Gets alpha value of the pixel at the given coords
+   * @param x x value of the pixel location
+   * @param y y value of the pixel location
+   * @return 8 bit integer of the alpha value
+   */
   private int getPixelAlpha(int x, int y) {
+    if (x == 0 && y ==0) {
+      System.err.println(this.getRGB(x, y));
+ 
+    }
     return ((this.getRGB(x, y) >> 24) & 0xff);
   }
 
+  /**
+   * "Selects" the layer
+   * @param showBoundary whether or not to show the boundary of the layer after being selected 
+   */
   public void select(Boolean showBoundary) {
     if (this.isSelected) return;
 
@@ -178,6 +221,9 @@ public class JDLayer extends BufferedImage {
     this.isSelected = true;
   }
 
+  /**
+   * "Deselect" the layer
+   */
   public void deselect() {
     if (!this.isSelected) return;
 
@@ -185,7 +231,14 @@ public class JDLayer extends BufferedImage {
     this.isSelected = false;
   }
 
-  /* this method is abandoned.  G2 graphics do not scale well so layers look too distored */
+  /**
+   * ABAONDONED.  Resizes layer to specified size.
+   * Abandoned because G2 graphics do not scale well so layers look too distored 
+   * @param x x value of new location of layer (for resizing the left side of the layer)
+   * @param y y value of new location of layer (for resizing the top side of the layer)
+   * @param w new width of layer
+   * @param h new height of layer
+   */
   public void resize(int x, int y, int w, int h) {    
     System.out.println("resizing");
     int newX = (int) getBoundary().getX() - this.getX();
@@ -220,33 +273,30 @@ public class JDLayer extends BufferedImage {
 
     this.g2.setBackground(bg);
     this.g2.clearRect(0, 0, this.getWidth(), this.getHeight());
+  
   }
 
+  /**
+   * Saves a snapshot of the layer to a buffered image to act as a buffer.  Useful to redraw what they layer
+   * looked like before drawing the boundary border.
+   * @param bf Buffered Image to save to the buffer, almost exclusively, the layer itself.
+   */
   private void setBuffer(BufferedImage bf) {
-    System.out.println("Setting buffer...");
-    saveImageToFile(this, "layer_before_buffer_save.png");
-    saveImageToFile(bf, "img_to_buffer_before_buffer_save.png");
-    System.out.println("  BF: " + bf.getWidth() + " x " + bf.getHeight());
     this.buffer = new BufferedImage(bf.getWidth(), bf.getHeight(), BufferedImage.TYPE_INT_ARGB);
     this.g2Buffer = this.buffer.createGraphics();
     this.g2Buffer.drawImage(bf, null, null);
-    saveImageToFile(buffer, "buffer_after_buffer_save.png");
   }
 
+  /**
+   * Refreshes the layer.  Not currently used.
+   */
   public void refresh() {
     int x = (int) getBoundary().getX();
     int y = (int) getBoundary().getY();
     int w = (int) getBoundary().getWidth();
     int h = (int) getBoundary().getHeight();
-    int newX = x;// - this.getX();
-    int newY = y;// - this.getY();
     Boolean wasBoundaryOn = false;
 
-    System.out.println("Refreshing Layer...");
-    System.out.println("Layer: " + this.getX() + " " + this.getY() + " ");
-    System.out.println("Boundary: " + x + " " + y + " ");   
-    System.out.println("New: " + newX + " " + newY + " ");
-    System.out.println("Boundary on: " + isBoundaryOn);
     
     if (this.isBoundaryOn) {
       wasBoundaryOn = true;
@@ -263,6 +313,11 @@ public class JDLayer extends BufferedImage {
     //if (wasBoundaryOn) this.drawBoundary();
   }
 
+  /**
+   * Not currently used.  Get's the portion of the layer that falls only within the boundary.  Was useful when building
+   * the functionality to resize, but that functionality has been abandoned.  
+   * @return buffered image
+   */
   private BufferedImage getCroppedLayer() {
     int x = (int) getBoundary().getX() - this.getX();
     int y = (int) getBoundary().getY() - this.getY();
@@ -276,8 +331,13 @@ public class JDLayer extends BufferedImage {
   }
 
   
-  // used for testing purposes
-  public void saveImageToFile(BufferedImage img, String fileName ) {
+  /**
+   * Saves the provided buffered image to disk.  Was used for testing purposes mainly when building in buffer functionality.
+   * Can be useful if other functionality is built into the app
+   * @param img buffered image to save
+   * @param fileName file name to give image.  must include .png extension
+   */
+  private void saveImageToFile(BufferedImage img, String fileName ) {
     try {
         File outputfile = new File(fileName);
         ImageIO.write(img, "png", outputfile);
@@ -287,18 +347,22 @@ public class JDLayer extends BufferedImage {
     }
   }
 
-  public void printVars(String delim, String ... vars) {
+  // my attempt to print multiple given vars at once (got tired of typing 'var + " " + var').  
+  // it isn't pefect, but it has it's purposes
+  private void printVars(String delim, String ... vars) {
 
-    for (int i = 0; i < vars.length; i++) {
-      System.out.print(vars[i] + " " + delim + " ");
+    for (String var : vars) {
+        System.out.print(var + " " + delim + " ");
     }
     System.out.println();
   }
 
-  public void printVars(String delim, Integer ... vars) {
+  // my attempt to print multiple given vars at once (got tired of typing 'var + " " + var').  
+  // it isn't pefect, but it has it's purposes
+  private void printVars(String delim, Integer ... vars) {
 
-    for (int i = 0; i < vars.length; i++) {
-      System.out.print(vars[i] + " " + delim + " ");
+    for (Integer var : vars) {
+        System.out.print(var + " " + delim + " ");
     }
     System.out.println();
   }
@@ -313,8 +377,6 @@ public class JDLayer extends BufferedImage {
   public void setName(String name) {
     this.name = name;
   }
-
- 
 
   public static void main(String[] args) {
     
